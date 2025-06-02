@@ -46,10 +46,9 @@ export const initializeDataStore = (sampleData = null) => {
       rooms: sampleData.rooms || [],
       amenities: sampleData.amenities || [],
       occupants: sampleData.occupants || [],
-      bookings: sampleData.bookings || [],
-      payments: sampleData.payments || [],
+payments: sampleData.payments || [],
       fees: sampleData.fees || [],
-paymentPlans: sampleData.paymentPlans || [],
+      paymentPlans: sampleData.paymentPlans || [],
       feeTransactions: sampleData.feeTransactions || [],
       roomChangeRequests: sampleData.roomChangeRequests || [],
       rules: sampleData.rules || sampleRules,
@@ -226,20 +225,17 @@ export const clearDataStore = () => {
   dataStore = {
     hostels: [],
     floors: [],
-    rooms: [],
-    amenities: [],
+amenities: [],
     occupants: [],
     bookings: [],
     payments: [],
-fees: [],
+    fees: [],
     paymentPlans: [],
     feeTransactions: [],
     emergencyAlerts: []
   };
   toast.info('Data store cleared');
 };
-};
-
 // Generic CRUD operations
 export const createEntity = async (entityType, data) => {
   try {
@@ -502,12 +498,12 @@ export async function getRuleStatistics() {
       inactive,
       byCategory,
       byPriority
-    };
+};
   } catch (error) {
     toast.error('Failed to fetch rule statistics');
     throw error;
   }
-};
+}
 
 export const readEntity = async (entityType, id) => {
   try {
@@ -558,12 +554,12 @@ export const updateEntity = async (entityType, id, data) => {
     // Validate the data
     const validation = validateData(data, entityType);
     if (!validation.isValid) {
-      showValidationErrors(validation.errors);
+showValidationErrors(validation.errors);
       return { success: false, errors: validation.errors };
     }
+
     const entities = dataStore[`${entityType}s`] || [];
     const index = entities.findIndex(item => item.id === id);
-    
     if (index === -1) {
       toast.error(`${entityType.charAt(0).toUpperCase() + entityType.slice(1)} not found`);
       return { success: false, error: 'Entity not found' };
@@ -782,10 +778,10 @@ export const getHostelStatistics = async (hostelId) => {
     const floors = (dataStore.floors || []).filter(floor => floor && floor.hostelId === hostelId);
     const rooms = (dataStore.rooms || []).filter(room => room && room.hostelId === hostelId);
     const amenities = (dataStore.amenities || []).filter(amenity => 
-      amenity && amenity.location && amenity.location.hostelId === hostelId
+amenity && amenity.location && amenity.location.hostelId === hostelId
     );
 
-const statistics = {
+    const statistics = {
       totalFloors: floors.length,
       totalRooms: rooms.length,
       totalAmenities: amenities.length,
@@ -932,10 +928,11 @@ export const exportData = (entityType, format = 'json') => {
         filename = `${entityType}s_${new Date().toISOString().split('T')[0]}.csv`;
         mimeType = 'text/csv';
         break;
-      default:
+default:
         throw new Error('Unsupported export format');
     }
-// Create download link (browser environment check)
+
+    // Create download link (browser environment check)
     if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       const blob = new Blob([exportData], { type: mimeType });
       const url = URL.createObjectURL(blob);
@@ -1031,10 +1028,10 @@ export const checkRoomAvailability = async (criteria = {}) => {
     // Filter by room type
     if (roomType && roomType !== 'all') {
       availableRooms = availableRooms.filter(room => room.type === roomType);
-    }
+}
 
     // Filter by guest capacity
-if (guestCount) {
+    if (guestCount) {
       availableRooms = availableRooms.filter(room => {
         if (!room.capacity || typeof room.capacity.maxOccupants !== 'number' || typeof room.capacity.currentOccupants !== 'number') {
           return false;
@@ -1068,28 +1065,29 @@ if (guestCount) {
         }
         return true;
       });
-    }
+}
 
     // Filter by amenities
-if (amenities.length > 0) {
+    if (amenities.length > 0) {
       availableRooms = availableRooms.filter(room => {
         const roomAmenities = (room && room.amenities && room.amenities.available) ? room.amenities.available : [];
         return Array.isArray(roomAmenities) && amenities.every(amenity => roomAmenities.includes(amenity));
-      });
+});
     }
 
-// Filter by price range
+    // Filter by price range
     if (minPrice) {
-      availableRooms = availableRooms.filter(room => 
+      availableRooms = availableRooms.filter(room =>
         room && room.pricing && typeof room.pricing.baseRent === 'number' && room.pricing.baseRent >= minPrice
       );
     }
 
     if (maxPrice) {
       availableRooms = availableRooms.filter(room => 
-        room && room.pricing && typeof room.pricing.baseRent === 'number' && room.pricing.baseRent <= maxPrice
+room && room.pricing && typeof room.pricing.baseRent === 'number' && room.pricing.baseRent <= maxPrice
       );
     }
+
     // Add calculated fields
     const enrichedRooms = availableRooms.map(room => {
       const availableBeds = room.capacity.maxOccupants - room.capacity.currentOccupants;
@@ -2051,11 +2049,10 @@ export async function searchRules(searchTerm, options = {}) {
       search: searchTerm
     });
   } catch (error) {
-    toast.error('Failed to search rules');
+toast.error('Failed to search rules');
     throw error;
+  }
 }
-}
-
 // Emergency Alert Management Functions
 
 // Alert types and their configurations
