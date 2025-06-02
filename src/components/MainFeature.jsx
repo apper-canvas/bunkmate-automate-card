@@ -241,11 +241,11 @@ const tabs = [
       guestCount: 1,
       amenities: [],
       minPrice: '',
-      maxPrice: ''
-    })
-setAvailableRooms([])
+})
+    setAvailableRooms([])
     toast.info('Search filters cleared')
   }
+  // Room change request handlers
   // Room change request handlers
   const handleChangeRequestSubmit = async (e) => {
     e.preventDefault()
@@ -505,9 +505,9 @@ setAvailableRooms([])
                     <p className="text-surface-600 dark:text-surface-400">
                       {searchTerm ? 'No residents found matching your search.' : 'No residents checked in yet.'}
                     </p>
-                  </div>
-                )}
 </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -1014,16 +1014,15 @@ setAvailableRooms([])
                   >
                     Cancel
                   </button>
-                  <button
+<button
                     type="submit"
-className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors font-medium"
+                    className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors font-medium"
                   >
                     {activeTab === 'availability' ? 'Book Room' : 'Check In'}
                   </button>
                 </div>
               </form>
             </motion.div>
-</motion.div>
           </motion.div>
         )}
       </AnimatePresence>
