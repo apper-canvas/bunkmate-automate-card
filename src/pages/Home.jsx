@@ -12,40 +12,40 @@ const Home = () => {
   }
 
   return (
-    <div className="min-h-screen">
+<div className="min-h-screen">
       {/* Header */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/80 dark:bg-surface-900/80 backdrop-blur-md border-b border-surface-200 dark:border-surface-700 sticky top-0 z-40"
+        className="glass-card sticky top-0 z-40 border-0 border-b border-surface-200/60 dark:border-surface-700/60"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 sm:h-20">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center">
-                <ApperIcon name="Building2" className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+          <div className="flex justify-between items-center h-18 sm:h-20">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-secondary-500 rounded-2xl flex items-center justify-center shadow-glow-sm">
+                <ApperIcon name="Building2" className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-surface-900 dark:text-white">BunkMate</h1>
-                <p className="text-xs sm:text-sm text-surface-600 dark:text-surface-400">Hostel Management</p>
+                <h1 className="text-2xl sm:text-3xl font-bold gradient-text">BunkMate</h1>
+                <p className="text-sm sm:text-base text-surface-600 dark:text-surface-400 font-medium">Smart Hostel Management</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-2 sm:space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <button
                 onClick={toggleDarkMode}
-                className="p-2 rounded-lg bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors"
+                className="modern-button modern-button-secondary p-3 !px-3 group"
               >
                 <ApperIcon 
                   name={darkMode ? "Sun" : "Moon"} 
-                  className="h-5 w-5 text-surface-700 dark:text-surface-300" 
+                  className="h-5 w-5 text-surface-700 dark:text-surface-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors" 
                 />
               </button>
               
-              <div className="hidden sm:flex items-center space-x-4">
-                <div className="flex items-center space-x-2 text-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-surface-600 dark:text-surface-400">Online</span>
+              <div className="hidden sm:flex items-center space-x-3">
+                <div className="flex items-center space-x-2 text-sm bg-success-50 dark:bg-success-900/20 px-3 py-2 rounded-full border border-success-200 dark:border-success-800">
+                  <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse-soft"></div>
+                  <span className="text-success-700 dark:text-success-300 font-medium">Online</span>
                 </div>
               </div>
             </div>
@@ -54,32 +54,42 @@ const Home = () => {
       </motion.header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         <MainFeature />
       </main>
 
-      {/* Quick Stats Footer */}
+      {/* Enhanced Quick Stats Footer */}
       <motion.footer 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-white/50 dark:bg-surface-900/50 backdrop-blur-sm border-t border-surface-200 dark:border-surface-700 mt-12"
+        className="glass-card border-0 border-t border-surface-200/60 dark:border-surface-700/60 mt-16"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { label: "Total Rooms", value: "48", icon: "Home" },
-              { label: "Occupied", value: "36", icon: "Users" },
-              { label: "Available", value: "12", icon: "Calendar" },
-              { label: "Revenue", value: "$24,580", icon: "DollarSign" }
+              { label: "Total Rooms", value: "48", icon: "Home", color: "primary" },
+              { label: "Occupied", value: "36", icon: "Users", color: "error" },
+              { label: "Available", value: "12", icon: "Calendar", color: "success" },
+              { label: "Revenue", value: "$24,580", icon: "DollarSign", color: "accent" }
             ].map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="flex justify-center mb-2">
-                  <ApperIcon name={stat.icon} className="h-5 w-5 text-primary-500" />
+              <motion.div 
+                key={index} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 + index * 0.1 }}
+                className="text-center group"
+              >
+                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3 bg-gradient-to-br from-${stat.color}-500 to-${stat.color}-600 text-white shadow-card group-hover:shadow-card-hover transition-all duration-300 group-hover:scale-110`}>
+                  <ApperIcon name={stat.icon} className="h-6 w-6" />
                 </div>
-                <div className="text-lg sm:text-xl font-bold text-surface-900 dark:text-white">{stat.value}</div>
-                <div className="text-xs sm:text-sm text-surface-600 dark:text-surface-400">{stat.label}</div>
-              </div>
+                <div className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                  {stat.value}
+                </div>
+                <div className="text-sm sm:text-base text-surface-600 dark:text-surface-400 font-medium">
+                  {stat.label}
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>

@@ -904,38 +904,43 @@ const tabs = [
         )}
       </AnimatePresence>
 
-      {/* Booking Modal */}
+{/* Enhanced Booking Modal */}
       <AnimatePresence>
         {showModal && selectedRoom && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-lg flex items-center justify-center p-4 z-50"
             onClick={() => setShowModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white dark:bg-surface-800 rounded-2xl p-6 w-full max-w-md border border-surface-200 dark:border-surface-700"
+              className="glass-card w-full max-w-lg border border-surface-200/60 dark:border-surface-700/60"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-surface-900 dark:text-white">
-                  Check In to Room {selectedRoom.number}
-                </h3>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-2xl font-bold text-surface-900 dark:text-white">
+                    Check In to Room {selectedRoom.number || selectedRoom.roomNumber}
+                  </h3>
+                  <p className="text-surface-600 dark:text-surface-400 mt-1">
+                    Complete your booking details
+                  </p>
+                </div>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-lg transition-colors"
+                  className="p-3 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-2xl transition-colors group"
                 >
-                  <ApperIcon name="X" className="h-5 w-5 text-surface-500" />
+                  <ApperIcon name="X" className="h-5 w-5 text-surface-500 group-hover:text-surface-700 dark:group-hover:text-surface-300" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="booking-form">
                 <div>
-                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-3">
                     Full Name *
                   </label>
                   <input
@@ -943,13 +948,13 @@ const tabs = [
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    placeholder="Enter full name"
+                    className="modern-input"
+                    placeholder="Enter your full name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-3">
                     Email Address *
                   </label>
                   <input
@@ -957,13 +962,13 @@ const tabs = [
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    placeholder="Enter email address"
+                    className="modern-input"
+                    placeholder="Enter your email address"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-3">
                     Phone Number *
                   </label>
                   <input
@@ -971,13 +976,13 @@ const tabs = [
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                    placeholder="Enter phone number"
+                    className="modern-input"
+                    placeholder="Enter your phone number"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                  <label className="block text-sm font-semibold text-surface-700 dark:text-surface-300 mb-3">
                     Check-in Date *
                   </label>
                   <input
@@ -985,38 +990,41 @@ const tabs = [
                     required
                     value={formData.checkInDate}
                     onChange={(e) => setFormData({ ...formData, checkInDate: e.target.value })}
-                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="modern-input"
                   />
                 </div>
 
-                <div className="bg-surface-50 dark:bg-surface-700 p-4 rounded-xl">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-surface-600 dark:text-surface-400">Room Type:</span>
-                    <span className="font-medium text-surface-900 dark:text-white">{selectedRoom.type}</span>
-                  </div>
-                  <div className="flex justify-between text-sm mt-1">
-                    <span className="text-surface-600 dark:text-surface-400">Monthly Rent:</span>
-                    <span className="font-medium text-surface-900 dark:text-white">${selectedRoom.rent}</span>
-                  </div>
-                  <div className="flex justify-between text-sm mt-1">
-                    <span className="text-surface-600 dark:text-surface-400">Available Beds:</span>
-                    <span className="font-medium text-surface-900 dark:text-white">
-                      {selectedRoom.capacity - selectedRoom.currentOccupancy}
-                    </span>
+                <div className="bg-gradient-to-br from-surface-50 to-surface-100 dark:from-surface-800 dark:to-surface-700 p-6 rounded-2xl border border-surface-200 dark:border-surface-600">
+                  <h4 className="font-semibold text-surface-900 dark:text-white mb-4">Room Details</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-surface-600 dark:text-surface-400 font-medium">Room Type:</span>
+                      <span className="font-semibold text-surface-900 dark:text-white">{selectedRoom.type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-surface-600 dark:text-surface-400 font-medium">Monthly Rent:</span>
+                      <span className="font-semibold text-primary-600 dark:text-primary-400">${selectedRoom.rent || selectedRoom.pricing?.baseRent}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-surface-600 dark:text-surface-400 font-medium">Available Beds:</span>
+                      <span className="font-semibold text-surface-900 dark:text-white">
+                        {selectedRoom.capacity ? selectedRoom.capacity - selectedRoom.currentOccupancy : selectedRoom.availableBeds}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex space-x-3 pt-4">
+                <div className="flex space-x-4 pt-6">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-2 border border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-300 rounded-xl hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                    className="modern-button modern-button-secondary flex-1"
                   >
                     Cancel
                   </button>
-<button
+                  <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors font-medium"
+                    className="modern-button modern-button-primary flex-1"
                   >
                     {activeTab === 'availability' ? 'Book Room' : 'Check In'}
                   </button>
