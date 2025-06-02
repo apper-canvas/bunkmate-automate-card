@@ -49,13 +49,15 @@ export const initializeDataStore = (sampleData = null) => {
       bookings: sampleData.bookings || [],
       payments: sampleData.payments || [],
       fees: sampleData.fees || [],
-      paymentPlans: sampleData.paymentPlans || [],
+paymentPlans: sampleData.paymentPlans || [],
       feeTransactions: sampleData.feeTransactions || [],
       roomChangeRequests: sampleData.roomChangeRequests || [],
-      rules: sampleData.rules || sampleRules
+      rules: sampleData.rules || sampleRules,
+      emergencyAlerts: sampleData.emergencyAlerts || []
     };
   } else {
     dataStore.rules = sampleRules;
+    dataStore.emergencyAlerts = [];
   }
 };
 
@@ -229,13 +231,13 @@ export const clearDataStore = () => {
     occupants: [],
     bookings: [],
     payments: [],
-    fees: [],
+fees: [],
     paymentPlans: [],
     feeTransactions: [],
-    roomChangeRequests: [],
-    rules: []
+    emergencyAlerts: []
   };
   toast.info('Data store cleared');
+};
 };
 
 // Generic CRUD operations
@@ -1400,9 +1402,19 @@ export default {
   bulkAvailabilityCheck,
   getAvailableRoomsByDate,
   searchRoomsByAmenities,
-createRoomChangeRequest,
+  createRoomChangeRequest,
   updateRoomChangeRequestStatus,
   getRoomChangeRequests,
+  // Rules Management
+  createRule,
+  updateRule,
+  deleteRule,
+  listRules,
+  getRule,
+  toggleRuleStatus,
+  getRulesByCategory,
+  getRuleStatistics,
+  searchRules,
   // Due Fees Management
   createFeeRecord,
   updateFeeStatus,
@@ -1414,7 +1426,17 @@ createRoomChangeRequest,
   getPaymentPlans,
   getFeeStatistics,
   bulkUpdateFees,
-  generateFeeReport
+  generateFeeReport,
+  // Emergency Alert Management
+  createEmergencyAlert,
+  sendAlert,
+  getEmergencyAlerts,
+  updateAlertStatus,
+  deleteEmergencyAlert,
+  getAlertStatistics,
+  ALERT_TYPES,
+  SEVERITY_LEVELS,
+  TARGET_AUDIENCES
 };
 
 // Due Fees Management Functions
@@ -2031,5 +2053,606 @@ export async function searchRules(searchTerm, options = {}) {
   } catch (error) {
     toast.error('Failed to search rules');
     throw error;
-  }
 }
+}
+
+// Emergency Alert Management Functions
+
+// Alert types and their configurations
+export const ALERT_TYPES = {
+  FIRE_EMERGENCY: {
+    id: 'fire_emergency',
+    name: 'Fire Emergency',
+    description: 'Fire outbreak or fire safety emergency',
+    defaultSeverity: 'critical',
+    requiresImmediate: true,
+    icon: 'Flame'
+  },
+  MEDICAL_EMERGENCY: {
+    id: 'medical_emergency',
+    name: 'Medical Emergency',
+    description: 'Medical emergency requiring immediate attention',
+    defaultSeverity: 'critical',
+    requiresImmediate: true,
+    icon: 'Heart'
+  },
+  SECURITY_ALERT: {
+    id: 'security_alert',
+    name: 'Security Alert',
+    description: 'Security breach or safety concern',
+    defaultSeverity: 'high',
+    requiresImmediate: true,
+    icon: 'Shield'
+  },
+  NATURAL_DISASTER: {
+    id: 'natural_disaster',
+    name: 'Natural Disaster',
+    description: 'Earthquake, flood, or other natural emergency',
+    defaultSeverity: 'critical',
+    requiresImmediate: true,
+    icon: 'CloudRain'
+  },
+  POWER_OUTAGE: {
+    id: 'power_outage',
+    name: 'Power Outage',
+    description: 'Electrical power disruption',
+    defaultSeverity: 'medium',
+    requiresImmediate: false,
+    icon: 'Zap'
+  },
+  WATER_SHORTAGE: {
+    id: 'water_shortage',
+    name: 'Water Shortage',
+    description: 'Water supply disruption or shortage',
+    defaultSeverity: 'medium',
+    requiresImmediate: false,
+    icon: 'Droplets'
+  },
+  GAS_LEAK: {
+    id: 'gas_leak',
+    name: 'Gas Leak',
+    description: 'Gas leak emergency',
+    defaultSeverity: 'critical',
+    requiresImmediate: true,
+    icon: 'AlertTriangle'
+  },
+  MAINTENANCE_ALERT: {
+    id: 'maintenance_alert',
+    name: 'Maintenance Alert',
+    description: 'Scheduled maintenance or service disruption',
+    defaultSeverity: 'low',
+    requiresImmediate: false,
+    icon: 'Wrench'
+  },
+  CUSTOM: {
+    id: 'custom',
+    name: 'Custom Alert',
+    description: 'Custom emergency or important notification',
+    defaultSeverity: 'medium',
+    requiresImmediate: false,
+    icon: 'Bell'
+  }
+};
+
+// Severity levels
+export const SEVERITY_LEVELS = {
+  LOW: {
+    id: 'low',
+    name: 'Low',
+    color: 'blue',
+    priority: 1,
+    description: 'Information or minor issues'
+  },
+  MEDIUM: {
+    id: 'medium',
+    name: 'Medium',
+    color: 'yellow',
+    priority: 2,
+    description: 'Important notifications requiring attention'
+  },
+  HIGH: {
+    id: 'high',
+    name: 'High',
+    color: 'orange',
+    priority: 3,
+    description: 'Urgent issues requiring immediate action'
+  },
+  CRITICAL: {
+    id: 'critical',
+    name: 'Critical',
+    color: 'red',
+    priority: 4,
+    description: 'Emergency situations requiring immediate response'
+  }
+};
+
+// Target audiences
+export const TARGET_AUDIENCES = {
+  ALL_RESIDENTS: {
+    id: 'all_residents',
+    name: 'All Residents',
+    description: 'Send to all hostel residents'
+  },
+  SPECIFIC_FLOOR: {
+    id: 'specific_floor',
+    name: 'Specific Floor',
+    description: 'Send to residents of specific floor(s)'
+  },
+  SPECIFIC_ROOM: {
+    id: 'specific_room',
+    name: 'Specific Room',
+    description: 'Send to specific room(s)'
+  },
+  STAFF_ONLY: {
+    id: 'staff_only',
+    name: 'Staff Only',
+    description: 'Send to hostel staff members only'
+  },
+  MANAGEMENT_ONLY: {
+    id: 'management_only',
+    name: 'Management Only',
+    description: 'Send to management team only'
+  },
+  MAINTENANCE_TEAM: {
+    id: 'maintenance_team',
+    name: 'Maintenance Team',
+    description: 'Send to maintenance staff'
+  },
+  SECURITY_PERSONNEL: {
+    id: 'security_personnel',
+    name: 'Security Personnel',
+    description: 'Send to security team'
+  },
+  CUSTOM: {
+    id: 'custom',
+    name: 'Custom',
+    description: 'Send to custom selected recipients'
+  }
+};
+
+// Create emergency alert
+export const createEmergencyAlert = async (alertData) => {
+  try {
+    // Validate required fields
+    const requiredFields = ['title', 'message', 'alertType', 'severity', 'targetAudience'];
+    for (const field of requiredFields) {
+      if (!alertData[field]) {
+        toast.error(`${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`);
+        return { success: false, error: `${field} is required` };
+      }
+    }
+
+    // Validate alert type
+    if (!Object.values(ALERT_TYPES).some(type => type.id === alertData.alertType)) {
+      toast.error('Invalid alert type');
+      return { success: false, error: 'Invalid alert type' };
+    }
+
+    // Validate severity
+    if (!Object.values(SEVERITY_LEVELS).some(level => level.id === alertData.severity)) {
+      toast.error('Invalid severity level');
+      return { success: false, error: 'Invalid severity level' };
+    }
+
+    // Validate target audience
+    if (!Object.values(TARGET_AUDIENCES).some(audience => audience.id === alertData.targetAudience)) {
+      toast.error('Invalid target audience');
+      return { success: false, error: 'Invalid target audience' };
+    }
+
+    // Create alert record
+    const alert = {
+      id: uuidv4(),
+      title: alertData.title,
+      message: alertData.message,
+      alertType: alertData.alertType,
+      severity: alertData.severity,
+      targetAudience: alertData.targetAudience,
+      targetDetails: alertData.targetDetails || {},
+      scheduledFor: alertData.scheduledFor || null,
+      status: alertData.scheduledFor ? 'scheduled' : 'sent',
+      createdAt: new Date().toISOString(),
+      sentAt: alertData.scheduledFor ? null : new Date().toISOString(),
+      createdBy: alertData.createdBy || 'System',
+      recipients: alertData.recipients || [],
+      deliveryStats: {
+        total: 0,
+        delivered: 0,
+        failed: 0,
+        pending: 0
+      },
+      metadata: {
+        estimatedRecipients: calculateRecipientCount(alertData.targetAudience, alertData.targetDetails),
+        urgency: ALERT_TYPES[alertData.alertType.toUpperCase()]?.requiresImmediate || false,
+        ...alertData.metadata
+      }
+    };
+
+    // Add to data store
+    if (!dataStore.emergencyAlerts) {
+      dataStore.emergencyAlerts = [];
+    }
+
+    dataStore.emergencyAlerts.push(alert);
+
+    // Send immediately if not scheduled
+    if (!alertData.scheduledFor) {
+      const sendResult = await sendAlert(alert.id);
+      if (!sendResult.success) {
+        toast.warning('Alert created but failed to send immediately');
+      }
+    }
+
+    toast.success(`Emergency alert ${alertData.scheduledFor ? 'scheduled' : 'sent'} successfully`);
+    return { success: true, data: alert };
+  } catch (error) {
+    toast.error(`Error creating emergency alert: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Calculate estimated recipient count
+const calculateRecipientCount = (targetAudience, targetDetails) => {
+  try {
+    const residents = dataStore.occupants || [];
+    
+    switch (targetAudience) {
+      case 'all_residents':
+        return residents.length;
+      case 'specific_floor':
+        if (targetDetails.floorIds && Array.isArray(targetDetails.floorIds)) {
+          return residents.filter(resident => 
+            targetDetails.floorIds.some(floorId => {
+              const room = (dataStore.rooms || []).find(r => r.id === resident.roomId);
+              return room && room.floorId === floorId;
+            })
+          ).length;
+        }
+        return 0;
+      case 'specific_room':
+        if (targetDetails.roomIds && Array.isArray(targetDetails.roomIds)) {
+          return residents.filter(resident => 
+            targetDetails.roomIds.includes(resident.roomId)
+          ).length;
+        }
+        return 0;
+      case 'staff_only':
+      case 'management_only':
+      case 'maintenance_team':
+      case 'security_personnel':
+        // Estimated staff count - in real implementation, this would come from staff database
+        return 5;
+      case 'custom':
+        return targetDetails.customRecipients ? targetDetails.customRecipients.length : 0;
+      default:
+        return 0;
+    }
+  } catch (error) {
+    return 0;
+  }
+};
+
+// Send alert
+export const sendAlert = async (alertId) => {
+  try {
+    const alerts = dataStore.emergencyAlerts || [];
+    const index = alerts.findIndex(alert => alert.id === alertId);
+    
+    if (index === -1) {
+      toast.error('Alert not found');
+      return { success: false, error: 'Alert not found' };
+    }
+
+    const alert = alerts[index];
+    
+    if (alert.status === 'sent') {
+      toast.warning('Alert has already been sent');
+      return { success: false, error: 'Alert already sent' };
+    }
+
+    // Simulate sending process
+    const recipients = await getAlertRecipients(alert);
+    const deliveryResults = await simulateAlertDelivery(recipients, alert);
+
+    // Update alert status
+    const updatedAlert = {
+      ...alert,
+      status: 'sent',
+      sentAt: new Date().toISOString(),
+      recipients: recipients,
+      deliveryStats: deliveryResults
+    };
+
+    dataStore.emergencyAlerts[index] = updatedAlert;
+
+    toast.success(`Alert sent to ${deliveryResults.delivered} recipients successfully`);
+    return { success: true, data: updatedAlert };
+  } catch (error) {
+    toast.error(`Error sending alert: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get alert recipients based on target audience
+const getAlertRecipients = async (alert) => {
+  try {
+    const recipients = [];
+    const residents = dataStore.occupants || [];
+    const rooms = dataStore.rooms || [];
+
+    switch (alert.targetAudience) {
+      case 'all_residents':
+        residents.forEach(resident => {
+          recipients.push({
+            id: resident.id,
+            name: resident.name,
+            email: resident.email,
+            phone: resident.phone,
+            type: 'resident'
+          });
+        });
+        break;
+
+      case 'specific_floor':
+        if (alert.targetDetails.floorIds) {
+          residents.forEach(resident => {
+            const room = rooms.find(r => r.id === resident.roomId);
+            if (room && alert.targetDetails.floorIds.includes(room.floorId)) {
+              recipients.push({
+                id: resident.id,
+                name: resident.name,
+                email: resident.email,
+                phone: resident.phone,
+                type: 'resident',
+                floor: room.floorId
+              });
+            }
+          });
+        }
+        break;
+
+      case 'specific_room':
+        if (alert.targetDetails.roomIds) {
+          residents.forEach(resident => {
+            if (alert.targetDetails.roomIds.includes(resident.roomId)) {
+              recipients.push({
+                id: resident.id,
+                name: resident.name,
+                email: resident.email,
+                phone: resident.phone,
+                type: 'resident',
+                room: resident.roomId
+              });
+            }
+          });
+        }
+        break;
+
+      case 'staff_only':
+      case 'management_only':
+      case 'maintenance_team':
+      case 'security_personnel':
+        // Add simulated staff recipients
+        recipients.push({
+          id: 'staff-1',
+          name: 'Admin User',
+          email: 'admin@hostel.com',
+          phone: '+1234567890',
+          type: alert.targetAudience
+        });
+        break;
+
+      case 'custom':
+        if (alert.targetDetails.customRecipients) {
+          recipients.push(...alert.targetDetails.customRecipients);
+        }
+        break;
+    }
+
+    return recipients;
+  } catch (error) {
+    return [];
+  }
+};
+
+// Simulate alert delivery
+const simulateAlertDelivery = async (recipients, alert) => {
+  try {
+    let delivered = 0;
+    let failed = 0;
+
+    // Simulate delivery success rate based on severity
+    const successRate = alert.severity === 'critical' ? 0.98 : 
+                       alert.severity === 'high' ? 0.95 : 
+                       alert.severity === 'medium' ? 0.92 : 0.90;
+
+    recipients.forEach(() => {
+      if (Math.random() < successRate) {
+        delivered++;
+      } else {
+        failed++;
+      }
+    });
+
+    return {
+      total: recipients.length,
+      delivered,
+      failed,
+      pending: 0
+    };
+  } catch (error) {
+    return {
+      total: recipients.length,
+      delivered: 0,
+      failed: recipients.length,
+      pending: 0
+    };
+  }
+};
+
+// Get emergency alerts with filtering
+export const getEmergencyAlerts = async (filters = {}) => {
+  try {
+    let alerts = [...(dataStore.emergencyAlerts || [])];
+
+    // Apply filters
+    if (filters.status) {
+      alerts = alerts.filter(alert => alert.status === filters.status);
+    }
+
+    if (filters.severity) {
+      alerts = alerts.filter(alert => alert.severity === filters.severity);
+    }
+
+    if (filters.alertType) {
+      alerts = alerts.filter(alert => alert.alertType === filters.alertType);
+    }
+
+    if (filters.targetAudience) {
+      alerts = alerts.filter(alert => alert.targetAudience === filters.targetAudience);
+    }
+
+    if (filters.dateRange) {
+      const { start, end } = filters.dateRange;
+      alerts = alerts.filter(alert => {
+        const alertDate = new Date(alert.createdAt);
+        return alertDate >= new Date(start) && alertDate <= new Date(end);
+      });
+    }
+
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      alerts = alerts.filter(alert =>
+        alert.title.toLowerCase().includes(searchTerm) ||
+        alert.message.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Sort by creation date (newest first)
+    alerts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return { success: true, data: alerts };
+  } catch (error) {
+    toast.error(`Error getting emergency alerts: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update alert status
+export const updateAlertStatus = async (alertId, status, notes = '') => {
+  try {
+    const validStatuses = ['draft', 'scheduled', 'sent', 'cancelled', 'failed'];
+    if (!validStatuses.includes(status)) {
+      toast.error('Invalid alert status');
+      return { success: false, error: 'Invalid status' };
+    }
+
+    const alerts = dataStore.emergencyAlerts || [];
+    const index = alerts.findIndex(alert => alert.id === alertId);
+    
+    if (index === -1) {
+      toast.error('Alert not found');
+      return { success: false, error: 'Alert not found' };
+    }
+
+    const updatedAlert = {
+      ...alerts[index],
+      status,
+      updatedAt: new Date().toISOString(),
+      notes: notes || alerts[index].notes
+    };
+
+    dataStore.emergencyAlerts[index] = updatedAlert;
+    
+    const statusMessages = {
+      cancelled: 'Alert cancelled successfully',
+      failed: 'Alert marked as failed',
+      sent: 'Alert marked as sent'
+    };
+
+    toast.success(statusMessages[status] || `Alert status updated to ${status}`);
+    return { success: true, data: updatedAlert };
+  } catch (error) {
+    toast.error(`Error updating alert status: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Delete emergency alert
+export const deleteEmergencyAlert = async (alertId) => {
+  try {
+    const alerts = dataStore.emergencyAlerts || [];
+    const index = alerts.findIndex(alert => alert.id === alertId);
+    
+    if (index === -1) {
+      toast.error('Alert not found');
+      return { success: false, error: 'Alert not found' };
+    }
+
+    const deletedAlert = dataStore.emergencyAlerts.splice(index, 1)[0];
+    
+    toast.success('Emergency alert deleted successfully');
+    return { success: true, data: deletedAlert };
+  } catch (error) {
+    toast.error(`Error deleting alert: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get alert statistics
+export const getAlertStatistics = async () => {
+  try {
+    const alerts = dataStore.emergencyAlerts || [];
+    
+    const total = alerts.length;
+    const sent = alerts.filter(alert => alert.status === 'sent').length;
+    const scheduled = alerts.filter(alert => alert.status === 'scheduled').length;
+    const failed = alerts.filter(alert => alert.status === 'failed').length;
+
+    const bySeverity = {};
+    const byType = {};
+    const byAudience = {};
+
+    alerts.forEach(alert => {
+      // Count by severity
+      bySeverity[alert.severity] = (bySeverity[alert.severity] || 0) + 1;
+      
+      // Count by type
+      byType[alert.alertType] = (byType[alert.alertType] || 0) + 1;
+      
+      // Count by audience
+      byAudience[alert.targetAudience] = (byAudience[alert.targetAudience] || 0) + 1;
+    });
+
+    // Calculate delivery statistics
+    const totalRecipients = alerts.reduce((sum, alert) => sum + (alert.deliveryStats?.total || 0), 0);
+    const totalDelivered = alerts.reduce((sum, alert) => sum + (alert.deliveryStats?.delivered || 0), 0);
+    const deliveryRate = totalRecipients > 0 ? (totalDelivered / totalRecipients) * 100 : 0;
+
+    // Recent alerts (last 7 days)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const recentAlerts = alerts.filter(alert => new Date(alert.createdAt) > oneWeekAgo);
+
+    return {
+      success: true,
+      data: {
+        total,
+        sent,
+        scheduled,
+        failed,
+        deliveryRate: Math.round(deliveryRate * 100) / 100,
+        totalRecipients,
+        totalDelivered,
+        bySeverity,
+        byType,
+        byAudience,
+        recentCount: recentAlerts.length,
+        recentAlerts: recentAlerts.slice(0, 5)
+      }
+    };
+  } catch (error) {
+    toast.error(`Error getting alert statistics: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};

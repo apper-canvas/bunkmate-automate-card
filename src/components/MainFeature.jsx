@@ -633,7 +633,7 @@ onClick={() => handleRoomClick(room)}
           </motion.div>
         )}
 
-        {/* Emergency Alerts Tab */}
+{/* Emergency Alerts Tab */}
         {activeTab === 'emergency-alerts' && (
           <motion.div
             key="emergency-alerts"
@@ -642,15 +642,360 @@ onClick={() => handleRoomClick(room)}
             exit={{ opacity: 0, x: -20 }}
             className="space-y-6"
           >
+            {/* Alert Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-surface-800 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                    <ApperIcon name="Bell" className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-surface-600 dark:text-surface-400">Total Alerts</p>
+                    <p className="text-xl font-semibold text-surface-900 dark:text-white">{emergencyAlerts.length}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white dark:bg-surface-800 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                    <ApperIcon name="CheckCircle" className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-surface-600 dark:text-surface-400">Sent</p>
+                    <p className="text-xl font-semibold text-surface-900 dark:text-white">
+                      {emergencyAlerts.filter(alert => alert.status === 'sent').length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white dark:bg-surface-800 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                    <ApperIcon name="Clock" className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-surface-600 dark:text-surface-400">Scheduled</p>
+                    <p className="text-xl font-semibold text-surface-900 dark:text-white">
+                      {emergencyAlerts.filter(alert => alert.status === 'scheduled').length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white dark:bg-surface-800 rounded-xl p-4 border border-surface-200 dark:border-surface-700">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
+                    <ApperIcon name="AlertTriangle" className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-surface-600 dark:text-surface-400">Critical</p>
+                    <p className="text-xl font-semibold text-surface-900 dark:text-white">
+                      {emergencyAlerts.filter(alert => alert.severity === 'critical').length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Create Alert Section */}
             <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
-              <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white mb-6">
-                Emergency Alerts
-              </h3>
-              <div className="text-center py-12">
-                <ApperIcon name="AlertTriangle" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
-                <p className="text-surface-600 dark:text-surface-400">
-Emergency alerts management features coming soon.
-                </p>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white">
+                  Emergency Alert System
+                </h3>
+                <button
+                  onClick={() => setShowEmergencyModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors text-sm font-medium"
+                >
+                  <ApperIcon name="Plus" className="h-4 w-4" />
+                  <span>Create Alert</span>
+                </button>
+              </div>
+
+              {/* Alert Creation Form */}
+              {showEmergencyModal && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-6 p-4 bg-surface-50 dark:bg-surface-700 rounded-xl border border-surface-200 dark:border-surface-600"
+                >
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    
+                    if (!emergencyForm.title || !emergencyForm.message) {
+                      toast.error('Please fill in all required fields');
+                      return;
+                    }
+
+                    try {
+                      const { createEmergencyAlert } = await import('../utils/dataManager');
+                      const result = await createEmergencyAlert({
+                        title: emergencyForm.title,
+                        message: emergencyForm.message,
+                        alertType: emergencyForm.alertType || 'custom',
+                        severity: emergencyForm.priority,
+                        targetAudience: emergencyForm.targetAudience,
+                        targetDetails: emergencyForm.targetDetails || {},
+                        scheduledFor: emergencyForm.scheduledFor || null,
+                        createdBy: 'Admin'
+                      });
+
+                      if (result.success) {
+                        setEmergencyAlerts(prev => [result.data, ...prev]);
+                        setEmergencyForm({
+                          title: '',
+                          message: '',
+                          alertType: 'custom',
+                          priority: 'medium',
+                          targetAudience: 'all_residents',
+                          targetDetails: {},
+                          scheduledFor: ''
+                        });
+                        setShowEmergencyModal(false);
+                      }
+                    } catch (error) {
+                      toast.error('Failed to create emergency alert');
+                    }
+                  }} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                          Alert Title *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={emergencyForm.title}
+                          onChange={(e) => setEmergencyForm({ ...emergencyForm, title: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-sm"
+                          placeholder="Emergency alert title"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                          Alert Type
+                        </label>
+                        <select
+                          value={emergencyForm.alertType}
+                          onChange={(e) => setEmergencyForm({ ...emergencyForm, alertType: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-sm"
+                        >
+                          <option value="custom">Custom Alert</option>
+                          <option value="fire_emergency">Fire Emergency</option>
+                          <option value="medical_emergency">Medical Emergency</option>
+                          <option value="security_alert">Security Alert</option>
+                          <option value="natural_disaster">Natural Disaster</option>
+                          <option value="power_outage">Power Outage</option>
+                          <option value="water_shortage">Water Shortage</option>
+                          <option value="gas_leak">Gas Leak</option>
+                          <option value="maintenance_alert">Maintenance Alert</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                          Priority Level *
+                        </label>
+                        <select
+                          value={emergencyForm.priority}
+                          onChange={(e) => setEmergencyForm({ ...emergencyForm, priority: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-sm"
+                        >
+                          <option value="low">Low Priority</option>
+                          <option value="medium">Medium Priority</option>
+                          <option value="high">High Priority</option>
+                          <option value="critical">Critical Emergency</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                          Target Audience *
+                        </label>
+                        <select
+                          value={emergencyForm.targetAudience}
+                          onChange={(e) => setEmergencyForm({ ...emergencyForm, targetAudience: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-sm"
+                        >
+                          <option value="all_residents">All Residents</option>
+                          <option value="specific_floor">Specific Floor</option>
+                          <option value="specific_room">Specific Room</option>
+                          <option value="staff_only">Staff Only</option>
+                          <option value="management_only">Management Only</option>
+                          <option value="maintenance_team">Maintenance Team</option>
+                          <option value="security_personnel">Security Personnel</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                        Alert Message *
+                      </label>
+                      <textarea
+                        required
+                        value={emergencyForm.message}
+                        onChange={(e) => setEmergencyForm({ ...emergencyForm, message: e.target.value })}
+                        rows={3}
+                        className="w-full px-3 py-2 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-sm resize-none"
+                        placeholder="Enter emergency alert message..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                        Schedule For Later (Optional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={emergencyForm.scheduledFor}
+                        onChange={(e) => setEmergencyForm({ ...emergencyForm, scheduledFor: e.target.value })}
+                        min={new Date().toISOString().slice(0, 16)}
+                        className="w-full px-3 py-2 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none text-sm"
+                      />
+                    </div>
+
+                    <div className="flex space-x-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={() => setShowEmergencyModal(false)}
+                        className="flex-1 px-4 py-2 border border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-300 rounded-xl hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors font-medium"
+                      >
+                        {emergencyForm.scheduledFor ? 'Schedule Alert' : 'Send Alert Now'}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+
+              {/* Alerts List */}
+              <div className="space-y-4">
+                {emergencyAlerts.length > 0 ? (
+                  emergencyAlerts.map((alert) => (
+                    <motion.div
+                      key={alert.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-surface-50 dark:bg-surface-700 rounded-xl border border-surface-200 dark:border-surface-600"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h4 className="font-medium text-surface-900 dark:text-white">
+                              {alert.title}
+                            </h4>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              alert.severity === 'critical' 
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                : alert.severity === 'high'
+                                ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                                : alert.severity === 'medium'
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            }`}>
+                              {alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1)}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              alert.status === 'sent' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : alert.status === 'scheduled'
+                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                            }`}>
+                              {alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
+                            </span>
+                          </div>
+                          
+                          <p className="text-sm text-surface-600 dark:text-surface-400 mb-2">
+                            {alert.message}
+                          </p>
+                          
+                          <div className="text-xs text-surface-500 dark:text-surface-500 space-y-1">
+                            <div>
+                              <span className="font-medium">Target:</span> {alert.targetAudience.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </div>
+                            <div>
+                              <span className="font-medium">Created:</span> {new Date(alert.createdAt).toLocaleString()}
+                            </div>
+                            {alert.sentAt && (
+                              <div>
+                                <span className="font-medium">Sent:</span> {new Date(alert.sentAt).toLocaleString()}
+                              </div>
+                            )}
+                            {alert.scheduledFor && (
+                              <div>
+                                <span className="font-medium">Scheduled:</span> {new Date(alert.scheduledFor).toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          {alert.status === 'scheduled' && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const { sendAlert } = await import('../utils/dataManager');
+                                  const result = await sendAlert(alert.id);
+                                  if (result.success) {
+                                    setEmergencyAlerts(prev => prev.map(a => a.id === alert.id ? result.data : a));
+                                  }
+                                } catch (error) {
+                                  toast.error('Failed to send alert');
+                                }
+                              }}
+                              className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                              title="Send Now"
+                            >
+                              <ApperIcon name="Send" className="h-4 w-4" />
+                            </button>
+                          )}
+                          
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { deleteEmergencyAlert } = await import('../utils/dataManager');
+                                const result = await deleteEmergencyAlert(alert.id);
+                                if (result.success) {
+                                  setEmergencyAlerts(prev => prev.filter(a => a.id !== alert.id));
+                                }
+                              } catch (error) {
+                                toast.error('Failed to delete alert');
+                              }
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <ApperIcon name="Trash2" className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center py-12">
+                    <ApperIcon name="AlertTriangle" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
+                    <p className="text-surface-600 dark:text-surface-400">
+                      No emergency alerts created yet.
+                    </p>
+                    <button
+                      onClick={() => setShowEmergencyModal(true)}
+                      className="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Create First Alert
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
