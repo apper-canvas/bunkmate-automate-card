@@ -16,6 +16,26 @@ const MainFeature = () => {
     duration: '1'
   })
 
+  // Availability search states
+  const [availabilityFilters, setAvailabilityFilters] = useState({
+    checkInDate: '',
+    checkOutDate: '',
+    roomType: 'all',
+    guestCount: 1,
+    amenities: [],
+    minPrice: '',
+    maxPrice: ''
+  })
+
+  const [availableRooms, setAvailableRooms] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+
+  // Common amenities for filtering
+  const commonAmenities = ['wifi', 'ac', 'private_bathroom', 'balcony', 'tv', 'refrigerator', 'wardrobe', 'study_table']
+  
+  // Room types for filtering
+  const roomTypes = ['single', 'double', 'triple', 'quad', 'dormitory', 'suite', 'studio', 'shared']
+
   // Sample data
   const [rooms, setRooms] = useState([
     { id: '1', number: '101', type: 'Single', capacity: 1, currentOccupancy: 1, status: 'occupied', rent: 500 },
@@ -136,10 +156,84 @@ const MainFeature = () => {
     toast.success(`${resident.name} has been checked out`)
   }
 
-  const tabs = [
+const tabs = [
     { id: 'rooms', label: 'Room Management', icon: 'Building' },
-    { id: 'residents', label: 'Residents', icon: 'Users' }
+    { id: 'residents', label: 'Residents', icon: 'Users' },
+    { id: 'availability', label: 'Room Search', icon: 'Calendar' }
   ]
+
+  // Availability search handlers
+  const handleFilterChange = (key, value) => {
+    setAvailabilityFilters(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
+
+  const handleAmenityToggle = (amenity) => {
+    setAvailabilityFilters(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(amenity)
+        ? prev.amenities.filter(a => a !== amenity)
+        : [...prev.amenities, amenity]
+    }))
+  }
+
+  const handleAvailabilitySearch = async () => {
+    if (!availabilityFilters.checkInDate) {
+      toast.error('Please select a check-in date')
+      return
+    }
+
+    setIsSearching(true)
+    
+    try {
+      // Import the function dynamically to avoid circular dependencies
+      const { checkRoomAvailability } = await import('../utils/dataManager')
+      
+      const searchCriteria = {
+        checkInDate: availabilityFilters.checkInDate,
+        checkOutDate: availabilityFilters.checkOutDate || null,
+        roomType: availabilityFilters.roomType === 'all' ? null : availabilityFilters.roomType,
+        guestCount: availabilityFilters.guestCount,
+        amenities: availabilityFilters.amenities,
+        minPrice: availabilityFilters.minPrice ? parseFloat(availabilityFilters.minPrice) : null,
+        maxPrice: availabilityFilters.maxPrice ? parseFloat(availabilityFilters.maxPrice) : null
+      }
+
+      const result = await checkRoomAvailability(searchCriteria)
+      
+      if (result.success) {
+        setAvailableRooms(result.data)
+        if (result.data.length === 0) {
+          toast.info('No rooms available for the selected criteria. Try adjusting your filters.')
+        }
+      } else {
+        toast.error(result.error || 'Failed to search rooms')
+        setAvailableRooms([])
+      }
+    } catch (error) {
+      console.error('Error searching rooms:', error)
+      toast.error('An error occurred while searching for rooms')
+      setAvailableRooms([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const clearAvailabilityFilters = () => {
+    setAvailabilityFilters({
+      checkInDate: '',
+      checkOutDate: '',
+      roomType: 'all',
+      guestCount: 1,
+      amenities: [],
+      minPrice: '',
+      maxPrice: ''
+    })
+    setAvailableRooms([])
+    toast.info('Search filters cleared')
+  }
 
   return (
     <div className="space-y-6">
@@ -686,7 +780,7 @@ const MainFeature = () => {
                     type="submit"
                     className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors font-medium"
                   >
-                    Check In
+{activeTab === 'availability' ? 'Book Room' : 'Check In'}
                   </button>
                 </div>
               </form>
