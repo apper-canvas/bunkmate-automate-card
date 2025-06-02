@@ -5,7 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 // Import validation functions with fallback
 let validateData, showValidationErrors, showValidationSuccess;
 try {
-  const validationModule = require('./dataValidation');
+  // Use dynamic import for ES6 modules
+  const validationModule = await import('./dataValidation');
   validateData = validationModule.validateData;
   showValidationErrors = validationModule.showValidationErrors;
   showValidationSuccess = validationModule.showValidationSuccess;
@@ -24,7 +25,10 @@ let dataStore = {
   amenities: [],
   occupants: [],
   bookings: [],
-  payments: []
+  payments: [],
+  fees: [],
+  paymentPlans: [],
+  feeTransactions: []
 };
 
 // Initialize with sample data if needed
@@ -35,9 +39,13 @@ export const initializeDataStore = (sampleData = null) => {
       floors: sampleData.floors || [],
       rooms: sampleData.rooms || [],
       amenities: sampleData.amenities || [],
-      occupants: [],
-      bookings: [],
-      payments: []
+      occupants: sampleData.occupants || [],
+      bookings: sampleData.bookings || [],
+      payments: sampleData.payments || [],
+      fees: sampleData.fees || [],
+      paymentPlans: sampleData.paymentPlans || [],
+      feeTransactions: sampleData.feeTransactions || [],
+      roomChangeRequests: sampleData.roomChangeRequests || []
     };
     toast.success('Data store initialized with sample data');
   }
@@ -534,7 +542,6 @@ export const exportData = (entityType, format = 'json') => {
       console.log('Export data:', exportData);
       toast.info(`${entityType}s data prepared for export`);
     }
-    toast.success(`${entityType}s exported successfully`);
     return { success: true };
   } catch (error) {
     toast.error(`Error exporting data: ${error.message}`);
@@ -594,7 +601,11 @@ export const clearDataStore = () => {
     amenities: [],
     occupants: [],
     bookings: [],
-    payments: []
+    payments: [],
+    fees: [],
+    paymentPlans: [],
+    feeTransactions: [],
+    roomChangeRequests: []
   };
   toast.info('Data store cleared');
 };
@@ -999,7 +1010,619 @@ export default {
   bulkAvailabilityCheck,
   getAvailableRoomsByDate,
   searchRoomsByAmenities,
-  createRoomChangeRequest,
+createRoomChangeRequest,
   updateRoomChangeRequestStatus,
-  getRoomChangeRequests
+  getRoomChangeRequests,
+  // Due Fees Management
+  createFeeRecord,
+  updateFeeStatus,
+  getFeeRecords,
+  calculateOverdueFees,
+  processFeePayment,
+  createPaymentPlan,
+  updatePaymentPlan,
+  getPaymentPlans,
+  getFeeStatistics,
+  bulkUpdateFees,
+  generateFeeReport
+};
+
+// Due Fees Management Functions
+
+// Create fee record
+export const createFeeRecord = async (feeData) => {
+  try {
+    // Validate required fields
+    const requiredFields = ['occupantId', 'roomId', 'feeType', 'amount', 'dueDate'];
+    for (const field of requiredFields) {
+      if (!feeData[field]) {
+        toast.error(`${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`);
+        return { success: false, error: `${field} is required` };
+      }
+    }
+
+    // Validate amount
+    if (feeData.amount <= 0) {
+      toast.error('Fee amount must be greater than 0');
+      return { success: false, error: 'Invalid amount' };
+    }
+
+    // Validate due date
+    const dueDate = new Date(feeData.dueDate);
+    if (isNaN(dueDate.getTime())) {
+      toast.error('Invalid due date');
+      return { success: false, error: 'Invalid due date' };
+    }
+
+    // Generate fee record
+    const feeRecord = {
+      id: uuidv4(),
+      ...feeData,
+      status: 'pending',
+      amountPaid: 0,
+      amountDue: feeData.amount,
+      penaltyAmount: 0,
+      totalAmount: feeData.amount,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      paymentHistory: [],
+      remindersSent: 0,
+      lastReminderDate: null
+    };
+
+    // Add to data store
+    if (!dataStore.fees) {
+      dataStore.fees = [];
+    }
+
+    dataStore.fees.push(feeRecord);
+    toast.success('Fee record created successfully');
+    
+    return { success: true, data: feeRecord };
+  } catch (error) {
+    toast.error(`Error creating fee record: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update fee status
+export const updateFeeStatus = async (feeId, status, notes = '') => {
+  try {
+    const validStatuses = ['pending', 'partial', 'paid', 'overdue', 'waived', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      toast.error('Invalid fee status');
+      return { success: false, error: 'Invalid status' };
+    }
+
+    const fees = dataStore.fees || [];
+    const index = fees.findIndex(fee => fee.id === feeId);
+    
+    if (index === -1) {
+      toast.error('Fee record not found');
+      return { success: false, error: 'Fee not found' };
+    }
+
+    const updatedFee = {
+      ...fees[index],
+      status,
+      updatedAt: new Date().toISOString(),
+      notes: notes || fees[index].notes
+    };
+
+    // Add status change to payment history
+    updatedFee.paymentHistory.push({
+      id: uuidv4(),
+      type: 'status_change',
+      fromStatus: fees[index].status,
+      toStatus: status,
+      notes,
+      timestamp: new Date().toISOString(),
+      updatedBy: 'System'
+    });
+
+    dataStore.fees[index] = updatedFee;
+    
+    const statusMessages = {
+      paid: 'Fee marked as paid',
+      overdue: 'Fee marked as overdue',
+      waived: 'Fee waived successfully',
+      cancelled: 'Fee cancelled'
+    };
+
+    toast.success(statusMessages[status] || `Fee status updated to ${status}`);
+    return { success: true, data: updatedFee };
+  } catch (error) {
+    toast.error(`Error updating fee status: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get fee records with filtering
+export const getFeeRecords = async (filters = {}) => {
+  try {
+    let fees = [...(dataStore.fees || [])];
+
+    // Apply filters
+    if (filters.status) {
+      fees = fees.filter(fee => fee.status === filters.status);
+    }
+    
+    if (filters.occupantId) {
+      fees = fees.filter(fee => fee.occupantId === filters.occupantId);
+    }
+
+    if (filters.roomId) {
+      fees = fees.filter(fee => fee.roomId === filters.roomId);
+    }
+
+    if (filters.feeType) {
+      fees = fees.filter(fee => fee.feeType === filters.feeType);
+    }
+
+    if (filters.overdue) {
+      const now = new Date();
+      fees = fees.filter(fee => {
+        const dueDate = new Date(fee.dueDate);
+        return dueDate < now && fee.status !== 'paid';
+      });
+    }
+
+    if (filters.dateRange) {
+      const { start, end } = filters.dateRange;
+      fees = fees.filter(fee => {
+        const feeDate = new Date(fee.dueDate);
+        return feeDate >= new Date(start) && feeDate <= new Date(end);
+      });
+    }
+
+    // Sort by due date (oldest first)
+    fees.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    return { success: true, data: fees };
+  } catch (error) {
+    toast.error(`Error getting fee records: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Calculate overdue fees with penalties
+export const calculateOverdueFees = async () => {
+  try {
+    const fees = dataStore.fees || [];
+    const now = new Date();
+    let updatedCount = 0;
+
+    for (let fee of fees) {
+      if (fee.status === 'paid' || fee.status === 'waived' || fee.status === 'cancelled') {
+        continue;
+      }
+
+      const dueDate = new Date(fee.dueDate);
+      const daysPastDue = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+
+      if (daysPastDue > 0) {
+        // Calculate penalty based on days overdue
+        let penaltyRate = 0;
+        if (daysPastDue <= 7) {
+          penaltyRate = 0.02; // 2% for first week
+        } else if (daysPastDue <= 30) {
+          penaltyRate = 0.05; // 5% for first month
+        } else {
+          penaltyRate = 0.10; // 10% after a month
+        }
+
+        const penaltyAmount = fee.amount * penaltyRate;
+        const totalAmount = fee.amount + penaltyAmount;
+
+        // Update fee record
+        const updatedFee = {
+          ...fee,
+          status: 'overdue',
+          penaltyAmount,
+          totalAmount,
+          daysPastDue,
+          updatedAt: new Date().toISOString()
+        };
+
+        const index = fees.findIndex(f => f.id === fee.id);
+        dataStore.fees[index] = updatedFee;
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      toast.success(`Updated ${updatedCount} overdue fee records with penalties`);
+    }
+
+    return { success: true, updatedCount };
+  } catch (error) {
+    toast.error(`Error calculating overdue fees: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Process fee payment
+export const processFeePayment = async (feeId, paymentData) => {
+  try {
+    // Validate required fields
+    const requiredFields = ['amount', 'paymentMethod'];
+    for (const field of requiredFields) {
+      if (!paymentData[field]) {
+        toast.error(`${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`);
+        return { success: false, error: `${field} is required` };
+      }
+    }
+
+    const fees = dataStore.fees || [];
+    const index = fees.findIndex(fee => fee.id === feeId);
+    
+    if (index === -1) {
+      toast.error('Fee record not found');
+      return { success: false, error: 'Fee not found' };
+    }
+
+    const fee = fees[index];
+    const paymentAmount = parseFloat(paymentData.amount);
+
+    if (paymentAmount <= 0) {
+      toast.error('Payment amount must be greater than 0');
+      return { success: false, error: 'Invalid payment amount' };
+    }
+
+    if (paymentAmount > fee.totalAmount - fee.amountPaid) {
+      toast.error('Payment amount exceeds outstanding balance');
+      return { success: false, error: 'Payment amount too high' };
+    }
+
+    // Create payment record
+    const payment = {
+      id: uuidv4(),
+      feeId,
+      amount: paymentAmount,
+      paymentMethod: paymentData.paymentMethod,
+      transactionId: paymentData.transactionId || uuidv4(),
+      notes: paymentData.notes || '',
+      processedAt: new Date().toISOString(),
+      processedBy: paymentData.processedBy || 'System'
+    };
+
+    // Update fee record
+    const newAmountPaid = fee.amountPaid + paymentAmount;
+    const newAmountDue = fee.totalAmount - newAmountPaid;
+    
+    let newStatus = 'partial';
+    if (newAmountDue <= 0) {
+      newStatus = 'paid';
+    }
+
+    const updatedFee = {
+      ...fee,
+      amountPaid: newAmountPaid,
+      amountDue: newAmountDue,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+      paymentHistory: [...fee.paymentHistory, {
+        ...payment,
+        type: 'payment'
+      }]
+    };
+
+    // Add payment transaction
+    if (!dataStore.feeTransactions) {
+      dataStore.feeTransactions = [];
+    }
+    dataStore.feeTransactions.push(payment);
+
+    dataStore.fees[index] = updatedFee;
+    
+    toast.success(`Payment of $${paymentAmount} processed successfully`);
+    return { success: true, data: { fee: updatedFee, payment } };
+  } catch (error) {
+    toast.error(`Error processing payment: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Create payment plan
+export const createPaymentPlan = async (feeId, planData) => {
+  try {
+    // Validate required fields
+    const requiredFields = ['installments', 'startDate'];
+    for (const field of requiredFields) {
+      if (!planData[field]) {
+        toast.error(`${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`);
+        return { success: false, error: `${field} is required` };
+      }
+    }
+
+    const fees = dataStore.fees || [];
+    const fee = fees.find(f => f.id === feeId);
+    
+    if (!fee) {
+      toast.error('Fee record not found');
+      return { success: false, error: 'Fee not found' };
+    }
+
+    if (fee.status === 'paid') {
+      toast.error('Cannot create payment plan for paid fee');
+      return { success: false, error: 'Fee already paid' };
+    }
+
+    const numberOfInstallments = parseInt(planData.installments);
+    if (numberOfInstallments < 2 || numberOfInstallments > 12) {
+      toast.error('Number of installments must be between 2 and 12');
+      return { success: false, error: 'Invalid installments' };
+    }
+
+    const remainingAmount = fee.totalAmount - fee.amountPaid;
+    const installmentAmount = Math.ceil(remainingAmount / numberOfInstallments * 100) / 100;
+
+    // Generate installment schedule
+    const installments = [];
+    const startDate = new Date(planData.startDate);
+
+    for (let i = 0; i < numberOfInstallments; i++) {
+      const dueDate = new Date(startDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+
+      // Adjust last installment to cover any rounding difference
+      const amount = i === numberOfInstallments - 1 
+        ? remainingAmount - (installmentAmount * (numberOfInstallments - 1))
+        : installmentAmount;
+
+      installments.push({
+        id: uuidv4(),
+        installmentNumber: i + 1,
+        amount: Math.max(amount, 0),
+        dueDate: dueDate.toISOString(),
+        status: 'pending',
+        paidAmount: 0,
+        paidDate: null
+      });
+    }
+
+    // Create payment plan
+    const paymentPlan = {
+      id: uuidv4(),
+      feeId,
+      occupantId: fee.occupantId,
+      totalAmount: remainingAmount,
+      numberOfInstallments,
+      installmentAmount,
+      installments,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      notes: planData.notes || ''
+    };
+
+    // Add to data store
+    if (!dataStore.paymentPlans) {
+      dataStore.paymentPlans = [];
+    }
+    dataStore.paymentPlans.push(paymentPlan);
+
+    toast.success(`Payment plan created with ${numberOfInstallments} installments`);
+    return { success: true, data: paymentPlan };
+  } catch (error) {
+    toast.error(`Error creating payment plan: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Update payment plan
+export const updatePaymentPlan = async (planId, installmentId, paymentAmount) => {
+  try {
+    const plans = dataStore.paymentPlans || [];
+    const planIndex = plans.findIndex(plan => plan.id === planId);
+    
+    if (planIndex === -1) {
+      toast.error('Payment plan not found');
+      return { success: false, error: 'Plan not found' };
+    }
+
+    const plan = plans[planIndex];
+    const installmentIndex = plan.installments.findIndex(inst => inst.id === installmentId);
+    
+    if (installmentIndex === -1) {
+      toast.error('Installment not found');
+      return { success: false, error: 'Installment not found' };
+    }
+
+    const installment = plan.installments[installmentIndex];
+    const amount = parseFloat(paymentAmount);
+
+    if (amount <= 0 || amount > installment.amount - installment.paidAmount) {
+      toast.error('Invalid payment amount');
+      return { success: false, error: 'Invalid amount' };
+    }
+
+    // Update installment
+    const updatedInstallment = {
+      ...installment,
+      paidAmount: installment.paidAmount + amount,
+      status: (installment.paidAmount + amount) >= installment.amount ? 'paid' : 'partial',
+      paidDate: (installment.paidAmount + amount) >= installment.amount ? new Date().toISOString() : installment.paidDate
+    };
+
+    plan.installments[installmentIndex] = updatedInstallment;
+
+    // Check if all installments are paid
+    const allPaid = plan.installments.every(inst => inst.status === 'paid');
+    if (allPaid) {
+      plan.status = 'completed';
+    }
+
+    plan.updatedAt = new Date().toISOString();
+    dataStore.paymentPlans[planIndex] = plan;
+
+    toast.success(`Installment payment of $${amount} recorded`);
+    return { success: true, data: plan };
+  } catch (error) {
+    toast.error(`Error updating payment plan: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get payment plans
+export const getPaymentPlans = async (filters = {}) => {
+  try {
+    let plans = [...(dataStore.paymentPlans || [])];
+
+    // Apply filters
+    if (filters.feeId) {
+      plans = plans.filter(plan => plan.feeId === filters.feeId);
+    }
+    
+    if (filters.occupantId) {
+      plans = plans.filter(plan => plan.occupantId === filters.occupantId);
+    }
+
+    if (filters.status) {
+      plans = plans.filter(plan => plan.status === filters.status);
+    }
+
+    // Sort by creation date (newest first)
+    plans.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return { success: true, data: plans };
+  } catch (error) {
+    toast.error(`Error getting payment plans: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get fee statistics
+export const getFeeStatistics = async () => {
+  try {
+    const fees = dataStore.fees || [];
+    const plans = dataStore.paymentPlans || [];
+    const transactions = dataStore.feeTransactions || [];
+
+    const totalFees = fees.length;
+    const totalAmount = fees.reduce((sum, fee) => sum + fee.totalAmount, 0);
+    const totalPaid = fees.reduce((sum, fee) => sum + fee.amountPaid, 0);
+    const totalOutstanding = totalAmount - totalPaid;
+
+    const overdueCount = fees.filter(fee => {
+      const dueDate = new Date(fee.dueDate);
+      return dueDate < new Date() && fee.status !== 'paid';
+    }).length;
+
+    const penaltyAmount = fees.reduce((sum, fee) => sum + (fee.penaltyAmount || 0), 0);
+
+    const statusCounts = fees.reduce((acc, fee) => {
+      acc[fee.status] = (acc[fee.status] || 0) + 1;
+      return acc;
+    }, {});
+
+    const activePlans = plans.filter(plan => plan.status === 'active').length;
+    const completedPlans = plans.filter(plan => plan.status === 'completed').length;
+
+    const recentTransactions = transactions
+      .sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt))
+      .slice(0, 10);
+
+    const statistics = {
+      totalFees,
+      totalAmount,
+      totalPaid,
+      totalOutstanding,
+      overdueCount,
+      penaltyAmount,
+      collectionRate: totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0,
+      statusCounts,
+      paymentPlans: {
+        active: activePlans,
+        completed: completedPlans,
+        total: activePlans + completedPlans
+      },
+      recentTransactions
+    };
+
+    return { success: true, data: statistics };
+  } catch (error) {
+    toast.error(`Error getting fee statistics: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Bulk update fees
+export const bulkUpdateFees = async (feeIds, updates) => {
+  try {
+    const results = [];
+    
+    for (const feeId of feeIds) {
+      const result = await updateFeeStatus(feeId, updates.status, updates.notes);
+      results.push(result);
+    }
+
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+
+    if (failed === 0) {
+      toast.success(`Successfully updated ${successful} fee records`);
+    } else {
+      toast.warning(`Updated ${successful} fees, failed ${failed}`);
+    }
+
+    return { success: failed === 0, results };
+  } catch (error) {
+    toast.error(`Error in bulk update: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Generate fee report
+export const generateFeeReport = async (dateRange = {}) => {
+  try {
+    const { start, end } = dateRange;
+    let fees = [...(dataStore.fees || [])];
+
+    // Filter by date range if provided
+    if (start && end) {
+      fees = fees.filter(fee => {
+        const feeDate = new Date(fee.dueDate);
+        return feeDate >= new Date(start) && feeDate <= new Date(end);
+      });
+    }
+
+    const reportData = {
+      summary: {
+        totalFees: fees.length,
+        totalAmount: fees.reduce((sum, fee) => sum + fee.totalAmount, 0),
+        totalPaid: fees.reduce((sum, fee) => sum + fee.amountPaid, 0),
+        totalOutstanding: fees.reduce((sum, fee) => sum + (fee.totalAmount - fee.amountPaid), 0),
+        totalPenalties: fees.reduce((sum, fee) => sum + (fee.penaltyAmount || 0), 0)
+      },
+      byStatus: fees.reduce((acc, fee) => {
+        if (!acc[fee.status]) {
+          acc[fee.status] = { count: 0, amount: 0 };
+        }
+        acc[fee.status].count++;
+        acc[fee.status].amount += fee.totalAmount;
+        return acc;
+      }, {}),
+      byFeeType: fees.reduce((acc, fee) => {
+        if (!acc[fee.feeType]) {
+          acc[fee.feeType] = { count: 0, amount: 0 };
+        }
+        acc[fee.feeType].count++;
+        acc[fee.feeType].amount += fee.totalAmount;
+        return acc;
+      }, {}),
+      overdueFees: fees.filter(fee => {
+        const dueDate = new Date(fee.dueDate);
+        return dueDate < new Date() && fee.status !== 'paid';
+      }),
+      generatedAt: new Date().toISOString(),
+      dateRange: { start, end }
+    };
+
+    toast.success('Fee report generated successfully');
+    return { success: true, data: reportData };
+  } catch (error) {
+    toast.error(`Error generating fee report: ${error.message}`);
+    return { success: false, error: error.message };
+  }
 };

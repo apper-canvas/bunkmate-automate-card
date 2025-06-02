@@ -31,14 +31,6 @@ const [availableRooms, setAvailableRooms] = useState([])
   const [isSearching, setIsSearching] = useState(false)
 
   // Room change request states
-  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false)
-  const [changeRequestFormData, setChangeRequestFormData] = useState({
-    requestedBy: '',
-    currentRoomId: '',
-    desiredRoomId: '',
-    reason: '',
-    preferredDate: ''
-  })
   const [roomChangeRequests, setRoomChangeRequests] = useState([])
 
   // Common amenities for filtering
@@ -97,6 +89,58 @@ const [availableRooms, setAvailableRooms] = useState([])
     resident.phone.includes(searchTerm)
   )
 
+// Room change request modal and form states
+  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false)
+  const [changeRequestFormData, setChangeRequestFormData] = useState({
+    requestedBy: '',
+    currentRoomId: '',
+    desiredRoomId: '',
+    reason: '',
+    preferredDate: ''
+  })
+  // Due Fees states
+  const [showFeeModal, setShowFeeModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentPlanModal, setShowPaymentPlanModal] = useState(false);
+  const [feeForm, setFeeForm] = useState({
+    occupantId: '',
+    roomId: '',
+    feeType: '',
+    amount: '',
+    dueDate: '',
+    description: ''
+  });
+  const [paymentForm, setPaymentForm] = useState({
+    amount: '',
+    paymentMethod: '',
+    transactionId: '',
+    notes: ''
+  });
+  const [paymentPlanForm, setPaymentPlanForm] = useState({
+    installments: '',
+    startDate: '',
+    notes: ''
+  });
+  const [feeRecords, setFeeRecords] = useState([]);
+  const [selectedFee, setSelectedFee] = useState(null);
+  const [feeFilters, setFeeFilters] = useState({
+    status: '',
+    feeType: '',
+    search: ''
+  });
+  const [filteredFees, setFilteredFees] = useState([]);
+  const [feeStatistics, setFeeStatistics] = useState({
+    totalOutstanding: 0,
+    overdueCount: 0,
+    collectionRate: 0,
+    penaltyAmount: 0
+  });
+
+// Load data on component mount
+  useEffect(() => {
+    // Initialize component data here if needed
+  }, [])
+
   const handleRoomClick = (room) => {
     if (room.status === 'available' || room.status === 'partial') {
       setSelectedRoom(room)
@@ -112,7 +156,6 @@ const [availableRooms, setAvailableRooms] = useState([])
       return
     }
 
-    // Create new resident
     const newResident = {
       id: Date.now().toString(),
       name: formData.name,
@@ -142,7 +185,7 @@ const [availableRooms, setAvailableRooms] = useState([])
     setFormData({ name: '', email: '', phone: '', checkInDate: '', duration: '1' })
     setSelectedRoom(null)
     
-    toast.success(`Successfully assigned ${formData.name} to Room ${selectedRoom.number}`)
+    toast.success(`Successfully assigned ${formData.name} to Room ${selectedRoom.number || selectedRoom.roomNumber}`)
   }
 
   const handleRemoveResident = (residentId) => {
@@ -166,14 +209,12 @@ const [availableRooms, setAvailableRooms] = useState([])
     setRooms(updatedRooms)
     toast.success(`${resident.name} has been checked out`)
   }
-
 const tabs = [
     { id: 'rooms', label: 'Room Management', icon: 'Building' },
     { id: 'residents', label: 'Residents', icon: 'Users' },
     { id: 'availability', label: 'Room Search', icon: 'Calendar' },
     { id: 'change-requests', label: 'Room Change Requests', icon: 'ArrowRightLeft' }
   ]
-
   // Availability search handlers
   const handleFilterChange = (key, value) => {
     setAvailabilityFilters(prev => ({
@@ -241,11 +282,11 @@ const tabs = [
       guestCount: 1,
       amenities: [],
       minPrice: '',
-})
+maxPrice: ''
+    })
     setAvailableRooms([])
     toast.info('Search filters cleared')
   }
-  // Room change request handlers
   // Room change request handlers
   const handleChangeRequestSubmit = async (e) => {
     e.preventDefault()
@@ -615,14 +656,16 @@ const tabs = [
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleAvailabilitySearch}
-                  disabled={isSearching || !availabilityFilters.checkInDate}
+disabled={isSearching || !availabilityFilters.checkInDate}
                   className="flex items-center justify-center space-x-2 px-6 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-medium"
                 >
                   {isSearching ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                       <span>Searching...</span>
                     </>
+return (
+    <div className="space-y-6">
                   ) : (
                     <>
                       <ApperIcon name="Search" className="h-4 w-4" />
