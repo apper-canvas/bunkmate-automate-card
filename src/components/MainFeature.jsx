@@ -649,11 +649,10 @@ onClick={() => handleRoomClick(room)}
               <div className="text-center py-12">
                 <ApperIcon name="AlertTriangle" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
                 <p className="text-surface-600 dark:text-surface-400">
-                  Emergency alerts management features coming soon.
+Emergency alerts management features coming soon.
                 </p>
               </div>
             </div>
-</div>
           </motion.div>
         )}
 
