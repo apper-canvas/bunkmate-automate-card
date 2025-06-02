@@ -276,8 +276,7 @@ setResidents([...residents, newResident])
         checkInDate: availabilityFilters.checkInDate,
         checkOutDate: availabilityFilters.checkOutDate || null,
         roomType: availabilityFilters.roomType === 'all' ? null : availabilityFilters.roomType,
-        guestCount: availabilityFilters.guestCount,
-        amenities: availabilityFilters.amenities,
+amenities: availabilityFilters.amenities,
         minPrice: availabilityFilters.minPrice ? parseFloat(availabilityFilters.minPrice) : null,
         maxPrice: availabilityFilters.maxPrice ? parseFloat(availabilityFilters.maxPrice) : null
       }
