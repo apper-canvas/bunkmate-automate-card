@@ -487,13 +487,14 @@ return (
                     key={room.id}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => handleRoomClick(room)}
+onClick={() => handleRoomClick(room)}
                     className={`room-grid-item p-3 sm:p-4 border-2 border-dashed ${
                       room.status === 'available' || room.status === 'partial'
                         ? 'cursor-pointer hover:border-primary-400 bg-gradient-to-br from-white to-surface-50 dark:from-surface-700 dark:to-surface-800'
                         : 'cursor-not-allowed bg-surface-100 dark:bg-surface-700'
                     } ${getStatusColor(room.status)} border-opacity-30`}
-<div className="flex flex-col items-center space-y-2 h-full justify-center">
+                  >
+                    <div className="flex flex-col items-center space-y-2 h-full justify-center">
                       <ApperIcon 
                         name={getStatusIcon(room.status)} 
                         className={`h-6 w-6 ${getStatusColor(room.status)} text-white rounded-full p-1`}
@@ -510,7 +511,7 @@ return (
                         </div>
                       </div>
                     </div>
-                  </motion.div>
+</motion.div>
                 ))}
               </div>
             </div>
@@ -652,201 +653,16 @@ return (
                 </p>
               </div>
             </div>
-          </motion.div>
-        )}
-</AnimatePresence>
-
-      {/* Content Area */}
-      <AnimatePresence mode="wait">
-        {activeTab === 'rooms' && (
-          <motion.div
-            key="rooms"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            {/* Room Grid */}
-            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white">
-                  Room Layout
-                </h3>
-                <div className="flex items-center space-x-4 text-xs sm:text-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-surface-600 dark:text-surface-400">Available</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span className="text-surface-600 dark:text-surface-400">Partial</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <span className="text-surface-600 dark:text-surface-400">Occupied</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-                {filteredRooms.map((room) => (
-                  <motion.div
-                    key={room.id}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleRoomClick(room)}
-                    className={`room-grid-item p-3 sm:p-4 border-2 border-dashed ${
-                      room.status === 'available' || room.status === 'partial'
-                        ? 'cursor-pointer hover:border-primary-400 bg-gradient-to-br from-white to-surface-50 dark:from-surface-700 dark:to-surface-800'
-                        : 'cursor-not-allowed bg-surface-100 dark:bg-surface-700'
-                    } ${getStatusColor(room.status)} border-opacity-30`}
-                  >
-{activeTab === 'residents' && (
-          <motion.div
-            key="residents"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            {/* Residents List */}
-            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
-              <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white mb-6">
-                Current Residents
-              </h3>
-
-              <div className="space-y-4">
-                {filteredResidents.map((resident) => {
-                  const room = rooms.find(r => r.id === resident.roomId)
-                  return (
-                    <motion.div
-                      key={resident.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-surface-50 dark:bg-surface-700 rounded-xl border border-surface-200 dark:border-surface-600 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-center space-x-4 mb-3 sm:mb-0">
-                        <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                          <ApperIcon name="User" className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-                        </div>
-                        <div>
-                          <div className="font-medium text-surface-900 dark:text-white">
-                            {resident.name}
-                          </div>
-                          <div className="text-sm text-surface-600 dark:text-surface-400">
-                            {resident.email} • {resident.phone}
-                          </div>
-                          <div className="text-xs text-surface-500 dark:text-surface-500">
-                            Room {room?.number} • Check-in: {resident.checkInDate}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        <span className="status-badge bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                          Active
-                        </span>
-                        <button
-                          onClick={() => handleRemoveResident(resident.id)}
-                          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                        >
-                          <ApperIcon name="UserMinus" className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </motion.div>
-                  )
-                })}
-
-                {filteredResidents.length === 0 && (
-                  <div className="text-center py-12">
-                    <ApperIcon name="Users" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
-                    <p className="text-surface-600 dark:text-surface-400">
-                      {searchTerm ? 'No residents found matching your search.' : 'No residents checked in yet.'}
-                    </p>
-                  </div>
-                )}
-              </div>
 </div>
-          </motion.div>
-        )}
-
-        {/* Due Fees Tab */}
-        {activeTab === 'due-fees' && (
-          <motion.div
-            key="due-fees"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
-              <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white mb-6">
-                Due Fees Management
-              </h3>
-              <div className="text-center py-12">
-                <ApperIcon name="DollarSign" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
-                <p className="text-surface-600 dark:text-surface-400">
-                  Due fees management features coming soon.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Rule Updates Tab */}
-        {activeTab === 'rule-updates' && (
-          <motion.div
-            key="rule-updates"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
-              <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white mb-6">
-                Rule Updates
-              </h3>
-              <div className="text-center py-12">
-                <ApperIcon name="FileText" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
-                <p className="text-surface-600 dark:text-surface-400">
-                  Rule updates management features coming soon.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Emergency Alerts Tab */}
-        {activeTab === 'emergency-alerts' && (
-          <motion.div
-            key="emergency-alerts"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
-          >
-            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
-              <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white mb-6">
-                Emergency Alerts
-              </h3>
-              <div className="text-center py-12">
-                <ApperIcon name="AlertTriangle" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
-                <p className="text-surface-600 dark:text-surface-400">
-                  Emergency alerts management features coming soon.
-                </p>
-              </div>
-            </div>
           </motion.div>
         )}
 
         {activeTab === 'availability' && (
           <motion.div
-          <motion.div
             key="availability"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-6"
           >
             {/* Search Filters */}
             <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
@@ -1078,12 +894,11 @@ return (
                   <ApperIcon name="Calendar" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
                   <p className="text-surface-600 dark:text-surface-400">
                     {isSearching ? 'Searching for available rooms...' : 'Search for available rooms using the filters above.'}
-                  </p>
+</p>
                 </div>
-)}
+              )}
             </div>
           </motion.div>
-        )}
         )}
 
         {activeTab === 'change-requests' && (
