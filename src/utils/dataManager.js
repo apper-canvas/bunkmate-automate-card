@@ -4,18 +4,24 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Import validation functions with fallback
 let validateData, showValidationErrors, showValidationSuccess;
-try {
-  // Use dynamic import for ES6 modules
-  const validationModule = await import('./dataValidation');
-  validateData = validationModule.validateData;
-  showValidationErrors = validationModule.showValidationErrors;
-  showValidationSuccess = validationModule.showValidationSuccess;
-} catch (error) {
-  // Fallback validation functions if module doesn't exist
-  validateData = (data, entityType) => ({ isValid: true, errors: [] });
-  showValidationErrors = (errors) => console.warn('Validation errors:', errors);
-  showValidationSuccess = (message) => console.log('Validation success:', message);
-}
+
+// Initialize validation functions asynchronously
+const initializeValidation = async () => {
+  try {
+    const validationModule = await import('./dataValidation');
+    validateData = validationModule.validateData;
+    showValidationErrors = validationModule.showValidationErrors;
+    showValidationSuccess = validationModule.showValidationSuccess;
+  } catch (error) {
+    // Fallback validation functions if module doesn't exist
+    validateData = (data, entityType) => ({ isValid: true, errors: [] });
+    showValidationErrors = (errors) => console.warn('Validation errors:', errors);
+    showValidationSuccess = (message) => console.log('Validation success:', message);
+  }
+};
+
+// Initialize validation on module load
+initializeValidation();
 
 // In-memory data store (in a real app, this would be connected to a database)
 let dataStore = {
@@ -45,10 +51,191 @@ export const initializeDataStore = (sampleData = null) => {
       fees: sampleData.fees || [],
       paymentPlans: sampleData.paymentPlans || [],
       feeTransactions: sampleData.feeTransactions || [],
-      roomChangeRequests: sampleData.roomChangeRequests || []
+      roomChangeRequests: sampleData.roomChangeRequests || [],
+      rules: sampleData.rules || sampleRules
     };
-    toast.success('Data store initialized with sample data');
+  } else {
+    dataStore.rules = sampleRules;
   }
+};
+
+// Sample rules data
+const sampleRules = [
+  {
+    id: 'rule-1',
+    title: 'Check-in and Check-out Times',
+    description: 'Standard check-in time is 2:00 PM and check-out time is 11:00 AM. Early check-in or late check-out may be available upon request and subject to additional charges.',
+    category: 'Hostel Policies',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-01-15',
+    updatedBy: 'Admin',
+    priority: 'high',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-2',
+    title: 'Visitor Policy',
+    description: 'Visitors are allowed between 9:00 AM and 9:00 PM. All visitors must register at the front desk and provide valid identification. Overnight guests are not permitted.',
+    category: 'Resident Guidelines',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-02-01',
+    updatedBy: 'Manager',
+    priority: 'high',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-3',
+    title: 'Common Area Usage',
+    description: 'Common areas including kitchen, lounge, and study rooms are available 24/7. Please clean up after use and be considerate of other residents.',
+    category: 'Facility Usage',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-01-20',
+    updatedBy: 'Admin',
+    priority: 'medium',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-4',
+    title: 'Noise Policy',
+    description: 'Quiet hours are from 10:00 PM to 8:00 AM. Please be respectful of other residents and keep noise levels to a minimum during these hours.',
+    category: 'Resident Guidelines',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-01-10',
+    updatedBy: 'Admin',
+    priority: 'high',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-5',
+    title: 'Kitchen Usage Guidelines',
+    description: 'Kitchen facilities are available for all residents. Clean all utensils and appliances after use. Label and date any food stored in refrigerators.',
+    category: 'Facility Usage',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-01-25',
+    updatedBy: 'Manager',
+    priority: 'medium',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-6',
+    title: 'Emergency Procedures',
+    description: 'In case of emergency, use designated emergency exits. Fire extinguishers are located on each floor. Report all emergencies to front desk immediately.',
+    category: 'Safety & Security',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-02-10',
+    updatedBy: 'Safety Officer',
+    priority: 'critical',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-7',
+    title: 'Payment Terms',
+    description: 'Monthly rent is due by the 5th of each month. Late payment fees apply after the 10th. Security deposits are refundable upon checkout inspection.',
+    category: 'Administrative',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-01-30',
+    updatedBy: 'Finance Manager',
+    priority: 'high',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-8',
+    title: 'Smoking Policy',
+    description: 'Smoking is strictly prohibited inside all hostel buildings. Designated smoking areas are available outside. Violation may result in immediate termination.',
+    category: 'Resident Guidelines',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-01-05',
+    updatedBy: 'Admin',
+    priority: 'critical',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-9',
+    title: 'Laundry Facility Usage',
+    description: 'Laundry facilities are available 24/7. Maximum usage time is 3 hours per session. Remove clothes promptly after washing/drying cycles complete.',
+    category: 'Facility Usage',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-02-05',
+    updatedBy: 'Manager',
+    priority: 'low',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-10',
+    title: 'Room Maintenance Requests',
+    description: 'Report all maintenance issues through the online portal or front desk. Emergency repairs will be addressed within 24 hours. Routine maintenance within 3-5 business days.',
+    category: 'Administrative',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-02-15',
+    updatedBy: 'Maintenance Supervisor',
+    priority: 'medium',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-11',
+    title: 'Internet and WiFi Usage',
+    description: 'Free WiFi is provided throughout the hostel. Do not share passwords with non-residents. Bandwidth-intensive activities may be restricted during peak hours.',
+    category: 'Facility Usage',
+    status: 'active',
+    effectiveDate: '2024-01-01',
+    lastUpdated: '2024-01-12',
+    updatedBy: 'IT Administrator',
+    priority: 'medium',
+    applicableToAll: true,
+    hostelIds: []
+  },
+  {
+    id: 'rule-12',
+    title: 'Guest Registration Protocol',
+    description: 'All guests must be registered at least 24 hours in advance. Maximum guest stay is 3 consecutive nights per month. Host is responsible for guest behavior.',
+    category: 'Administrative',
+    status: 'draft',
+    effectiveDate: '2024-03-01',
+    lastUpdated: '2024-02-20',
+    updatedBy: 'Admin',
+    priority: 'medium',
+    applicableToAll: true,
+    hostelIds: []
+  }
+];
+
+// Clear all data
+export const clearDataStore = () => {
+  dataStore = {
+    hostels: [],
+    floors: [],
+    rooms: [],
+    amenities: [],
+    occupants: [],
+    bookings: [],
+    payments: [],
+    fees: [],
+    paymentPlans: [],
+    feeTransactions: [],
+    roomChangeRequests: [],
+    rules: []
+  };
+  toast.info('Data store cleared');
 };
 
 // Generic CRUD operations
@@ -71,6 +258,7 @@ export const createEntity = async (entityType, data) => {
       showValidationErrors(validation.errors);
       return { success: false, errors: validation.errors };
     }
+
     // Generate ID if not provided
     if (!data.id) {
       data.id = uuidv4();
@@ -96,6 +284,226 @@ export const createEntity = async (entityType, data) => {
   } catch (error) {
     toast.error(`Error creating ${entityType}: ${error.message}`);
     return { success: false, error: error.message };
+  }
+};
+
+// Rules Management Functions
+
+// Create a new rule
+export async function createRule(ruleData) {
+  try {
+    const rule = {
+      id: `rule-${uuidv4()}`,
+      title: ruleData.title,
+      description: ruleData.description,
+      category: ruleData.category,
+      status: ruleData.status || 'draft',
+      effectiveDate: ruleData.effectiveDate,
+      lastUpdated: new Date().toISOString().split('T')[0],
+      updatedBy: ruleData.updatedBy || 'Admin',
+      priority: ruleData.priority || 'medium',
+      applicableToAll: ruleData.applicableToAll !== false,
+      hostelIds: ruleData.hostelIds || [],
+      createdAt: new Date().toISOString(),
+      ...ruleData
+    };
+
+    dataStore.rules.push(rule);
+    toast.success('Rule created successfully');
+    return rule;
+  } catch (error) {
+    toast.error('Failed to create rule');
+    throw error;
+  }
+}
+
+// Update an existing rule
+export async function updateRule(ruleId, updates) {
+  try {
+    const ruleIndex = dataStore.rules.findIndex(rule => rule.id === ruleId);
+    if (ruleIndex === -1) {
+      throw new Error('Rule not found');
+    }
+
+    const updatedRule = {
+      ...dataStore.rules[ruleIndex],
+      ...updates,
+      lastUpdated: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString()
+    };
+
+    dataStore.rules[ruleIndex] = updatedRule;
+    toast.success('Rule updated successfully');
+    return updatedRule;
+  } catch (error) {
+    toast.error('Failed to update rule');
+    throw error;
+  }
+}
+
+// Delete a rule
+export async function deleteRule(ruleId) {
+  try {
+    const ruleIndex = dataStore.rules.findIndex(rule => rule.id === ruleId);
+    if (ruleIndex === -1) {
+      throw new Error('Rule not found');
+    }
+
+    dataStore.rules.splice(ruleIndex, 1);
+    toast.success('Rule deleted successfully');
+    return true;
+  } catch (error) {
+    toast.error('Failed to delete rule');
+    throw error;
+  }
+}
+
+// List rules with filtering and search
+export async function listRules(options = {}) {
+  try {
+    let rules = [...dataStore.rules];
+
+    // Apply filters
+    if (options.category) {
+      rules = rules.filter(rule => rule.category === options.category);
+    }
+
+    if (options.status) {
+      rules = rules.filter(rule => rule.status === options.status);
+    }
+
+    if (options.priority) {
+      rules = rules.filter(rule => rule.priority === options.priority);
+    }
+
+    if (options.hostelId) {
+      rules = rules.filter(rule => 
+        rule.applicableToAll || rule.hostelIds.includes(options.hostelId)
+      );
+    }
+
+    // Apply search
+    if (options.search) {
+      const searchTerm = options.search.toLowerCase();
+      rules = rules.filter(rule =>
+        rule.title.toLowerCase().includes(searchTerm) ||
+        rule.description.toLowerCase().includes(searchTerm) ||
+        rule.category.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Apply sorting
+    if (options.sortBy) {
+      rules.sort((a, b) => {
+        const aValue = a[options.sortBy];
+        const bValue = b[options.sortBy];
+        
+        if (options.sortOrder === 'desc') {
+          return bValue > aValue ? 1 : -1;
+        }
+        return aValue > bValue ? 1 : -1;
+      });
+    }
+
+    // Apply pagination
+    if (options.page && options.limit) {
+      const start = (options.page - 1) * options.limit;
+      const end = start + options.limit;
+      rules = rules.slice(start, end);
+    }
+
+    return {
+      data: rules,
+      total: dataStore.rules.length,
+      filtered: rules.length
+    };
+  } catch (error) {
+    toast.error('Failed to fetch rules');
+    throw error;
+  }
+}
+
+// Get a specific rule by ID
+export async function getRule(ruleId) {
+  try {
+    const rule = dataStore.rules.find(rule => rule.id === ruleId);
+    if (!rule) {
+      throw new Error('Rule not found');
+    }
+    return rule;
+  } catch (error) {
+    toast.error('Failed to fetch rule');
+    throw error;
+  }
+}
+
+// Activate/Deactivate a rule
+export async function toggleRuleStatus(ruleId) {
+  try {
+    const rule = dataStore.rules.find(rule => rule.id === ruleId);
+    if (!rule) {
+      throw new Error('Rule not found');
+    }
+
+    rule.status = rule.status === 'active' ? 'inactive' : 'active';
+    rule.lastUpdated = new Date().toISOString().split('T')[0];
+    rule.updatedAt = new Date().toISOString();
+
+    toast.success(`Rule ${rule.status === 'active' ? 'activated' : 'deactivated'} successfully`);
+    return rule;
+  } catch (error) {
+    toast.error('Failed to toggle rule status');
+    throw error;
+  }
+}
+
+// Get rules by category
+export async function getRulesByCategory() {
+  try {
+    const categories = {};
+    dataStore.rules.forEach(rule => {
+      if (!categories[rule.category]) {
+        categories[rule.category] = [];
+      }
+      categories[rule.category].push(rule);
+    });
+    return categories;
+  } catch (error) {
+    toast.error('Failed to fetch rules by category');
+    throw error;
+  }
+}
+
+// Get rule statistics
+export async function getRuleStatistics() {
+  try {
+    const total = dataStore.rules.length;
+    const active = dataStore.rules.filter(rule => rule.status === 'active').length;
+    const draft = dataStore.rules.filter(rule => rule.status === 'draft').length;
+    const inactive = dataStore.rules.filter(rule => rule.status === 'inactive').length;
+
+    const byCategory = {};
+    const byPriority = {};
+
+    dataStore.rules.forEach(rule => {
+      // Count by category
+      byCategory[rule.category] = (byCategory[rule.category] || 0) + 1;
+      
+      // Count by priority
+      byPriority[rule.priority] = (byPriority[rule.priority] || 0) + 1;
+    });
+
+    return {
+      total,
+      active,
+      draft,
+      inactive,
+      byCategory,
+      byPriority
+    };
+  } catch (error) {
+    toast.error('Failed to fetch rule statistics');
+    throw error;
   }
 };
 
@@ -591,24 +999,6 @@ const flattenObject = (obj, prefix = '') => {
 
 // Get current data store (for debugging)
 export const getDataStore = () => dataStore;
-
-// Clear data store
-export const clearDataStore = () => {
-  dataStore = {
-    hostels: [],
-    floors: [],
-    rooms: [],
-    amenities: [],
-    occupants: [],
-    bookings: [],
-    payments: [],
-    fees: [],
-    paymentPlans: [],
-    feeTransactions: [],
-    roomChangeRequests: []
-  };
-  toast.info('Data store cleared');
-};
 
 // Room availability checking functions
 export const checkRoomAvailability = async (criteria = {}) => {
@@ -1626,3 +2016,20 @@ export const generateFeeReport = async (dateRange = {}) => {
     return { success: false, error: error.message };
   }
 };
+
+// Search rules
+export async function searchRules(searchTerm, options = {}) {
+  try {
+    if (!searchTerm) {
+      return await listRules(options);
+    }
+
+    return await listRules({
+      ...options,
+      search: searchTerm
+    });
+  } catch (error) {
+    toast.error('Failed to search rules');
+    throw error;
+  }
+}

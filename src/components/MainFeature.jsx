@@ -83,14 +83,7 @@ const [availableRooms, setAvailableRooms] = useState([])
     room.status.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const filteredResidents = residents.filter(resident =>
-    resident.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.phone.includes(searchTerm)
-  )
-
-// Room change request modal and form states
-  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false)
+const [showChangeRequestModal, setShowChangeRequestModal] = useState(false)
   const [changeRequestFormData, setChangeRequestFormData] = useState({
     requestedBy: '',
     currentRoomId: '',
@@ -178,15 +171,45 @@ const [availableRooms, setAvailableRooms] = useState([])
       }
       return room
     })
-
-    setResidents([...residents, newResident])
+setResidents([...residents, newResident])
     setRooms(updatedRooms)
     setShowModal(false)
-    setFormData({ name: '', email: '', phone: '', checkInDate: '', duration: '1' })
-    setSelectedRoom(null)
-    
-    toast.success(`Successfully assigned ${formData.name} to Room ${selectedRoom.number || selectedRoom.roomNumber}`)
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      checkInDate: '',
+      duration: '1'
+    })
+    toast.success(`${newResident.name} has been checked in to Room ${selectedRoom.number}`)
   }
+
+  const [emergencyAlerts, setEmergencyAlerts] = useState([]);
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const [emergencyForm, setEmergencyForm] = useState({
+    title: '',
+    message: '',
+    priority: 'medium',
+    targetAudience: 'all'
+  });
+  // Rules Management State
+  const [rules, setRules] = useState([]);
+  const [rulesLoading, setRulesLoading] = useState(false);
+  const [rulesSearch, setRulesSearch] = useState('');
+  const [rulesCategory, setRulesCategory] = useState('all');
+  const [rulesStatus, setRulesStatus] = useState('all');
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [selectedRule, setSelectedRule] = useState(null);
+  const [ruleForm, setRuleForm] = useState({
+    title: '',
+    description: '',
+    category: 'Hostel Policies',
+    priority: 'medium',
+    status: 'draft',
+    effectiveDate: '',
+    applicableToAll: true,
+    hostelIds: []
+});
 
   const handleRemoveResident = (residentId) => {
     const resident = residents.find(r => r.id === residentId)
@@ -346,13 +369,13 @@ maxPrice: ''
           ...request,
           status: newStatus,
           processedBy: 'Admin',
-          processedDate: new Date().toISOString().split('T')[0],
-          notes: notes
+processedDate: new Date().toISOString().split('T')[0],
+          notes
         }
       }
       return request
     }))
-
+    
     const statusMessages = {
       approved: 'Room change request approved',
       denied: 'Room change request denied',
@@ -369,13 +392,19 @@ maxPrice: ''
     toast.info(
       `Request by ${request.requestedBy}: ${currentRoom?.number} → ${desiredRoom?.number}\nReason: ${request.reason}\nStatus: ${request.status.toUpperCase()}`,
       { autoClose: 5000 }
-)
+    )
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Header with Tabs */}
-      <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
+  // Filtered residents for search functionality
+  const filteredResidents = residents.filter(resident => 
+    resident.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    resident.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    resident.phone.includes(searchTerm)
+  )
+return (
+    <div className="min-h-screen bg-gradient-to-br from-surface-50 via-white to-surface-100 dark:from-surface-900 dark:via-surface-800 dark:to-surface-900">
+      {/* Header */}
+      <div className="bg-white/80 dark:bg-surface-800/80 backdrop-blur-xl border-b border-surface-200/60 dark:border-surface-700/60 sticky top-0 z-40">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white">
