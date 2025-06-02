@@ -786,6 +786,136 @@ const tabs = [
               </form>
             </motion.div>
           </motion.div>
+)}
+      </AnimatePresence>
+
+      {/* Room Change Request Modal */}
+      <AnimatePresence>
+        {showChangeRequestModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            onClick={() => setShowChangeRequestModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-surface-800 rounded-2xl p-6 w-full max-w-md border border-surface-200 dark:border-surface-700"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-surface-900 dark:text-white">
+                  Room Change Request
+                </h3>
+                <button
+                  onClick={() => setShowChangeRequestModal(false)}
+                  className="p-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-lg transition-colors"
+                >
+                  <ApperIcon name="X" className="h-5 w-5 text-surface-500" />
+                </button>
+              </div>
+
+              <form onSubmit={handleChangeRequestSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Requested By *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={changeRequestFormData.requestedBy}
+                    onChange={(e) => setChangeRequestFormData({ ...changeRequestFormData, requestedBy: e.target.value })}
+                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    placeholder="Enter your name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Current Room *
+                  </label>
+                  <select
+                    required
+                    value={changeRequestFormData.currentRoomId}
+                    onChange={(e) => setChangeRequestFormData({ ...changeRequestFormData, currentRoomId: e.target.value })}
+                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">Select current room</option>
+                    {rooms.filter(room => room.status === 'occupied' || room.status === 'partial').map(room => (
+                      <option key={room.id} value={room.id}>
+                        Room {room.number} - {room.type}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Desired Room *
+                  </label>
+                  <select
+                    required
+                    value={changeRequestFormData.desiredRoomId}
+                    onChange={(e) => setChangeRequestFormData({ ...changeRequestFormData, desiredRoomId: e.target.value })}
+                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">Select desired room</option>
+                    {rooms.filter(room => room.status === 'available' || room.status === 'partial').map(room => (
+                      <option key={room.id} value={room.id}>
+                        Room {room.number} - {room.type} (${room.rent}/month)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Reason for Change *
+                  </label>
+                  <textarea
+                    required
+                    value={changeRequestFormData.reason}
+                    onChange={(e) => setChangeRequestFormData({ ...changeRequestFormData, reason: e.target.value })}
+                    rows={3}
+                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                    placeholder="Please explain why you want to change rooms..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Preferred Change Date
+                  </label>
+                  <input
+                    type="date"
+                    value={changeRequestFormData.preferredDate}
+                    onChange={(e) => setChangeRequestFormData({ ...changeRequestFormData, preferredDate: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowChangeRequestModal(false)}
+                    className="flex-1 px-4 py-2 border border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-300 rounded-xl hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors font-medium"
+                  >
+                    Submit Request
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

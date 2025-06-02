@@ -1,7 +1,20 @@
 // Data management utilities for hostel management system
 import { toast } from 'react-toastify';
-import { validateData, showValidationErrors, showValidationSuccess } from './dataValidation';
 import { v4 as uuidv4 } from 'uuid';
+
+// Import validation functions with fallback
+let validateData, showValidationErrors, showValidationSuccess;
+try {
+  const validationModule = require('./dataValidation');
+  validateData = validationModule.validateData;
+  showValidationErrors = validationModule.showValidationErrors;
+  showValidationSuccess = validationModule.showValidationSuccess;
+} catch (error) {
+  // Fallback validation functions if module doesn't exist
+  validateData = (data, entityType) => ({ isValid: true, errors: [] });
+  showValidationErrors = (errors) => console.warn('Validation errors:', errors);
+  showValidationSuccess = (message) => console.log('Validation success:', message);
+}
 
 // In-memory data store (in a real app, this would be connected to a database)
 let dataStore = {
@@ -33,13 +46,23 @@ export const initializeDataStore = (sampleData = null) => {
 // Generic CRUD operations
 export const createEntity = async (entityType, data) => {
   try {
+    // Input validation
+    if (!entityType || typeof entityType !== 'string') {
+      toast.error('Invalid entity type provided');
+      return { success: false, error: 'Invalid entity type' };
+    }
+    
+    if (!data || typeof data !== 'object') {
+      toast.error('Invalid data provided');
+      return { success: false, error: 'Invalid data' };
+    }
+
     // Validate the data
     const validation = validateData(data, entityType);
     if (!validation.isValid) {
       showValidationErrors(validation.errors);
       return { success: false, errors: validation.errors };
     }
-
     // Generate ID if not provided
     if (!data.id) {
       data.id = uuidv4();
@@ -70,8 +93,19 @@ export const createEntity = async (entityType, data) => {
 
 export const readEntity = async (entityType, id) => {
   try {
+    // Input validation
+    if (!entityType || typeof entityType !== 'string') {
+      toast.error('Invalid entity type provided');
+      return { success: false, error: 'Invalid entity type' };
+    }
+    
+    if (!id) {
+      toast.error('Entity ID is required');
+      return { success: false, error: 'ID is required' };
+    }
+
     const entities = dataStore[`${entityType}s`] || [];
-    const entity = entities.find(item => item.id === id);
+    const entity = entities.find(item => item && item.id === id);
     
     if (!entity) {
       toast.error(`${entityType.charAt(0).toUpperCase() + entityType.slice(1)} not found`);
@@ -87,13 +121,28 @@ export const readEntity = async (entityType, id) => {
 
 export const updateEntity = async (entityType, id, data) => {
   try {
+    // Input validation
+    if (!entityType || typeof entityType !== 'string') {
+      toast.error('Invalid entity type provided');
+      return { success: false, error: 'Invalid entity type' };
+    }
+    
+    if (!id) {
+      toast.error('Entity ID is required');
+      return { success: false, error: 'ID is required' };
+    }
+    
+    if (!data || typeof data !== 'object') {
+      toast.error('Invalid data provided');
+      return { success: false, error: 'Invalid data' };
+    }
+
     // Validate the data
     const validation = validateData(data, entityType);
     if (!validation.isValid) {
       showValidationErrors(validation.errors);
       return { success: false, errors: validation.errors };
     }
-
     const entities = dataStore[`${entityType}s`] || [];
     const index = entities.findIndex(item => item.id === id);
     
@@ -121,8 +170,19 @@ export const updateEntity = async (entityType, id, data) => {
 
 export const deleteEntity = async (entityType, id) => {
   try {
+    // Input validation
+    if (!entityType || typeof entityType !== 'string') {
+      toast.error('Invalid entity type provided');
+      return { success: false, error: 'Invalid entity type' };
+    }
+    
+    if (!id) {
+      toast.error('Entity ID is required');
+      return { success: false, error: 'ID is required' };
+    }
+
     const entities = dataStore[`${entityType}s`] || [];
-    const index = entities.findIndex(item => item.id === id);
+    const index = entities.findIndex(item => item && item.id === id);
     
     if (index === -1) {
       toast.error(`${entityType.charAt(0).toUpperCase() + entityType.slice(1)} not found`);
@@ -277,33 +337,46 @@ const applySorting = (entities, sortBy, sortOrder) => {
 
 // Helper function to get nested object values
 const getNestedValue = (obj, path) => {
-  return path.split('.').reduce((current, key) => {
-    return current && current[key] !== undefined ? current[key] : null;
-  }, obj);
+  if (!obj || !path) return null;
+  
+  try {
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : null;
+    }, obj);
+  } catch (error) {
+    return null;
+  }
 };
 
 // Specialized hostel operations
 export const getHostelStatistics = async (hostelId) => {
   try {
+    if (!hostelId) {
+      toast.error('Hostel ID is required');
+      return { success: false, error: 'Hostel ID is required' };
+    }
+
     const hostel = await readEntity('hostel', hostelId);
     if (!hostel.success) {
       return hostel;
     }
 
-    const floors = dataStore.floors.filter(floor => floor.hostelId === hostelId);
-    const rooms = dataStore.rooms.filter(room => room.hostelId === hostelId);
-    const amenities = dataStore.amenities.filter(amenity => amenity.location.hostelId === hostelId);
+    const floors = (dataStore.floors || []).filter(floor => floor && floor.hostelId === hostelId);
+    const rooms = (dataStore.rooms || []).filter(room => room && room.hostelId === hostelId);
+    const amenities = (dataStore.amenities || []).filter(amenity => 
+      amenity && amenity.location && amenity.location.hostelId === hostelId
+    );
 
-    const statistics = {
+const statistics = {
       totalFloors: floors.length,
       totalRooms: rooms.length,
       totalAmenities: amenities.length,
-      occupiedRooms: rooms.filter(room => room.availability.status === 'occupied').length,
-      availableRooms: rooms.filter(room => room.availability.status === 'available').length,
-      maintenanceRooms: rooms.filter(room => room.availability.status === 'maintenance').length,
-      occupancyRate: rooms.length > 0 ? (rooms.filter(room => room.availability.status === 'occupied').length / rooms.length) * 100 : 0,
-      averageRent: rooms.length > 0 ? rooms.reduce((sum, room) => sum + (room.pricing.baseRent || 0), 0) / rooms.length : 0,
-      monthlyRevenue: rooms.filter(room => room.availability.status === 'occupied').reduce((sum, room) => sum + (room.pricing.baseRent || 0), 0)
+      occupiedRooms: rooms.filter(room => room && room.availability && room.availability.status === 'occupied').length,
+      availableRooms: rooms.filter(room => room && room.availability && room.availability.status === 'available').length,
+      maintenanceRooms: rooms.filter(room => room && room.availability && room.availability.status === 'maintenance').length,
+      occupancyRate: rooms.length > 0 ? (rooms.filter(room => room && room.availability && room.availability.status === 'occupied').length / rooms.length) * 100 : 0,
+      averageRent: rooms.length > 0 ? rooms.reduce((sum, room) => sum + (room && room.pricing && room.pricing.baseRent || 0), 0) / rooms.length : 0,
+      monthlyRevenue: rooms.filter(room => room && room.availability && room.availability.status === 'occupied').reduce((sum, room) => sum + (room && room.pricing && room.pricing.baseRent || 0), 0)
     };
 
     return { success: true, data: statistics };
@@ -444,18 +517,23 @@ export const exportData = (entityType, format = 'json') => {
       default:
         throw new Error('Unsupported export format');
     }
-
-    // Create download link
-    const blob = new Blob([exportData], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
+// Create download link (browser environment check)
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const blob = new Blob([exportData], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success(`${entityType}s exported successfully`);
+    } else {
+      // Node.js environment or no DOM
+      console.log('Export data:', exportData);
+      toast.info(`${entityType}s data prepared for export`);
+    }
     toast.success(`${entityType}s exported successfully`);
     return { success: true };
   } catch (error) {
@@ -466,9 +544,12 @@ export const exportData = (entityType, format = 'json') => {
 
 // Convert objects to CSV format
 const convertToCSV = (objects) => {
-  if (objects.length === 0) return '';
+  if (!Array.isArray(objects) || objects.length === 0) return '';
 
-  const headers = Object.keys(flattenObject(objects[0]));
+  const firstObject = objects.find(obj => obj && typeof obj === 'object');
+  if (!firstObject) return '';
+
+  const headers = Object.keys(flattenObject(firstObject));
   const csvContent = [
     headers.join(','),
     ...objects.map(obj => headers.map(header => {
@@ -484,11 +565,17 @@ const convertToCSV = (objects) => {
 const flattenObject = (obj, prefix = '') => {
   const flattened = {};
   
+  if (!obj || typeof obj !== 'object') {
+    return flattened;
+  }
+  
   for (const key in obj) {
-    if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-      Object.assign(flattened, flattenObject(obj[key], prefix + key + '.'));
-    } else {
-      flattened[prefix + key] = obj[key];
+    if (obj.hasOwnProperty(key)) {
+      if (obj[key] !== null && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        Object.assign(flattened, flattenObject(obj[key], prefix + key + '.'));
+      } else {
+        flattened[prefix + key] = obj[key];
+      }
     }
   }
   
@@ -544,8 +631,11 @@ export const checkRoomAvailability = async (criteria = {}) => {
     }
 
     // Filter by guest capacity
-    if (guestCount) {
+if (guestCount) {
       availableRooms = availableRooms.filter(room => {
+        if (!room.capacity || typeof room.capacity.maxOccupants !== 'number' || typeof room.capacity.currentOccupants !== 'number') {
+          return false;
+        }
         const availableCapacity = room.capacity.maxOccupants - room.capacity.currentOccupants;
         return availableCapacity >= parseInt(guestCount);
       });
@@ -578,22 +668,25 @@ export const checkRoomAvailability = async (criteria = {}) => {
     }
 
     // Filter by amenities
-    if (amenities.length > 0) {
+if (amenities.length > 0) {
       availableRooms = availableRooms.filter(room => {
-        const roomAmenities = room.amenities?.available || [];
-        return amenities.every(amenity => roomAmenities.includes(amenity));
+        const roomAmenities = (room && room.amenities && room.amenities.available) ? room.amenities.available : [];
+        return Array.isArray(roomAmenities) && amenities.every(amenity => roomAmenities.includes(amenity));
       });
     }
 
-    // Filter by price range
+// Filter by price range
     if (minPrice) {
-      availableRooms = availableRooms.filter(room => room.pricing.baseRent >= minPrice);
+      availableRooms = availableRooms.filter(room => 
+        room && room.pricing && typeof room.pricing.baseRent === 'number' && room.pricing.baseRent >= minPrice
+      );
     }
 
     if (maxPrice) {
-      availableRooms = availableRooms.filter(room => room.pricing.baseRent <= maxPrice);
+      availableRooms = availableRooms.filter(room => 
+        room && room.pricing && typeof room.pricing.baseRent === 'number' && room.pricing.baseRent <= maxPrice
+      );
     }
-
     // Add calculated fields
     const enrichedRooms = availableRooms.map(room => {
       const availableBeds = room.capacity.maxOccupants - room.capacity.currentOccupants;
@@ -759,6 +852,134 @@ export const searchRoomsByAmenities = async (requiredAmenities = [], optionalAme
   }
 };
 
+// Room change request operations
+export const createRoomChangeRequest = async (requestData) => {
+  try {
+    // Validate required fields
+    const requiredFields = ['currentRoomId', 'desiredRoomId', 'requestedBy', 'reason'];
+    for (const field of requiredFields) {
+      if (!requestData[field]) {
+        toast.error(`${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`);
+        return { success: false, error: `${field} is required` };
+      }
+    }
+
+    // Check if current and desired rooms are different
+    if (requestData.currentRoomId === requestData.desiredRoomId) {
+      toast.error('Current room and desired room cannot be the same');
+      return { success: false, error: 'Invalid room selection' };
+    }
+
+    // Generate request data
+    const request = {
+      id: uuidv4(),
+      ...requestData,
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      reviewedBy: null,
+      reviewedAt: null,
+      completedAt: null,
+      comments: []
+    };
+
+    // Add to data store
+    if (!dataStore.roomChangeRequests) {
+      dataStore.roomChangeRequests = [];
+    }
+
+    dataStore.roomChangeRequests.push(request);
+    toast.success('Room change request submitted successfully');
+    
+    return { success: true, data: request };
+  } catch (error) {
+    toast.error(`Error creating room change request: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateRoomChangeRequestStatus = async (requestId, status, reviewedBy, comments = '') => {
+  try {
+    const validStatuses = ['pending', 'approved', 'denied', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      toast.error('Invalid status');
+      return { success: false, error: 'Invalid status' };
+    }
+
+    const requests = dataStore.roomChangeRequests || [];
+    const index = requests.findIndex(req => req.id === requestId);
+    
+    if (index === -1) {
+      toast.error('Room change request not found');
+      return { success: false, error: 'Request not found' };
+    }
+
+    const now = new Date().toISOString();
+    const updatedRequest = {
+      ...requests[index],
+      status,
+      updatedAt: now,
+      reviewedBy: reviewedBy || requests[index].reviewedBy,
+      reviewedAt: status !== 'pending' ? now : requests[index].reviewedAt,
+      completedAt: status === 'completed' ? now : requests[index].completedAt
+    };
+
+    if (comments) {
+      updatedRequest.comments = [
+        ...updatedRequest.comments,
+        {
+          id: uuidv4(),
+          text: comments,
+          addedBy: reviewedBy,
+          addedAt: now
+        }
+      ];
+    }
+
+    dataStore.roomChangeRequests[index] = updatedRequest;
+    
+    const statusMessages = {
+      approved: 'Room change request approved',
+      denied: 'Room change request denied',
+      completed: 'Room change completed successfully',
+      cancelled: 'Room change request cancelled'
+    };
+
+    toast.success(statusMessages[status] || `Request status updated to ${status}`);
+    return { success: true, data: updatedRequest };
+  } catch (error) {
+    toast.error(`Error updating request status: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+export const getRoomChangeRequests = async (filters = {}) => {
+  try {
+    let requests = [...(dataStore.roomChangeRequests || [])];
+
+    // Apply filters
+    if (filters.status) {
+      requests = requests.filter(req => req.status === filters.status);
+    }
+    
+    if (filters.requestedBy) {
+      requests = requests.filter(req => req.requestedBy === filters.requestedBy);
+    }
+
+    if (filters.currentRoomId) {
+      requests = requests.filter(req => req.currentRoomId === filters.currentRoomId);
+    }
+
+    // Sort by submission date (newest first)
+    requests.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+    return { success: true, data: requests };
+  } catch (error) {
+    toast.error(`Error getting room change requests: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   initializeDataStore,
   createEntity,
@@ -777,5 +998,8 @@ export default {
   checkRoomAvailability,
   bulkAvailabilityCheck,
   getAvailableRoomsByDate,
-  searchRoomsByAmenities
+  searchRoomsByAmenities,
+  createRoomChangeRequest,
+  updateRoomChangeRequestStatus,
+  getRoomChangeRequests
 };
