@@ -27,8 +27,19 @@ const MainFeature = () => {
     maxPrice: ''
   })
 
-  const [availableRooms, setAvailableRooms] = useState([])
+const [availableRooms, setAvailableRooms] = useState([])
   const [isSearching, setIsSearching] = useState(false)
+
+  // Room change request states
+  const [showChangeRequestModal, setShowChangeRequestModal] = useState(false)
+  const [changeRequestFormData, setChangeRequestFormData] = useState({
+    requestedBy: '',
+    currentRoomId: '',
+    desiredRoomId: '',
+    reason: '',
+    preferredDate: ''
+  })
+  const [roomChangeRequests, setRoomChangeRequests] = useState([])
 
   // Common amenities for filtering
   const commonAmenities = ['wifi', 'ac', 'private_bathroom', 'balcony', 'tv', 'refrigerator', 'wardrobe', 'study_table']
@@ -159,7 +170,8 @@ const MainFeature = () => {
 const tabs = [
     { id: 'rooms', label: 'Room Management', icon: 'Building' },
     { id: 'residents', label: 'Residents', icon: 'Users' },
-    { id: 'availability', label: 'Room Search', icon: 'Calendar' }
+    { id: 'availability', label: 'Room Search', icon: 'Calendar' },
+    { id: 'change-requests', label: 'Room Change Requests', icon: 'ArrowRightLeft' }
   ]
 
   // Availability search handlers
@@ -231,8 +243,87 @@ const tabs = [
       minPrice: '',
       maxPrice: ''
     })
-    setAvailableRooms([])
+setAvailableRooms([])
     toast.info('Search filters cleared')
+  }
+  // Room change request handlers
+  const handleChangeRequestSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!changeRequestFormData.requestedBy || !changeRequestFormData.currentRoomId || 
+        !changeRequestFormData.desiredRoomId || !changeRequestFormData.reason) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    if (changeRequestFormData.currentRoomId === changeRequestFormData.desiredRoomId) {
+      toast.error('Current room and desired room cannot be the same')
+      return
+    }
+
+    try {
+      const newRequest = {
+        id: Date.now().toString(),
+        requestedBy: changeRequestFormData.requestedBy,
+        currentRoomId: changeRequestFormData.currentRoomId,
+        desiredRoomId: changeRequestFormData.desiredRoomId,
+        reason: changeRequestFormData.reason,
+        preferredDate: changeRequestFormData.preferredDate || null,
+        status: 'pending',
+        requestDate: new Date().toISOString().split('T')[0],
+        processedBy: null,
+        processedDate: null,
+        notes: ''
+      }
+
+      setRoomChangeRequests(prev => [...prev, newRequest])
+      setShowChangeRequestModal(false)
+      setChangeRequestFormData({
+        requestedBy: '',
+        currentRoomId: '',
+        desiredRoomId: '',
+        reason: '',
+        preferredDate: ''
+      })
+      
+      toast.success('Room change request submitted successfully')
+    } catch (error) {
+      console.error('Error submitting change request:', error)
+      toast.error('Failed to submit room change request')
+    }
+  }
+
+  const handleChangeRequestStatusUpdate = (requestId, newStatus, notes = '') => {
+    setRoomChangeRequests(prev => prev.map(request => {
+      if (request.id === requestId) {
+        return {
+          ...request,
+          status: newStatus,
+          processedBy: 'Admin',
+          processedDate: new Date().toISOString().split('T')[0],
+          notes: notes
+        }
+      }
+      return request
+    }))
+
+    const statusMessages = {
+      approved: 'Room change request approved',
+      denied: 'Room change request denied',
+      completed: 'Room change completed successfully'
+    }
+    
+    toast.success(statusMessages[newStatus] || 'Request status updated')
+  }
+
+  const handleViewChangeRequest = (request) => {
+    const currentRoom = rooms.find(r => r.id === request.currentRoomId)
+    const desiredRoom = rooms.find(r => r.id === request.desiredRoomId)
+    
+    toast.info(
+      `Request by ${request.requestedBy}: ${currentRoom?.number} → ${desiredRoom?.number}\nReason: ${request.reason}\nStatus: ${request.status.toUpperCase()}`,
+      { autoClose: 5000 }
+)
   }
 
   return (
@@ -416,9 +507,9 @@ const tabs = [
                     </p>
                   </div>
                 )}
-              </div>
+</div>
             </div>
-</motion.div>
+          </motion.div>
         )}
 
         {activeTab === 'availability' && (
@@ -661,6 +752,153 @@ const tabs = [
                   </p>
                 </div>
               )}
+</div>
+          </motion.div>
+        )}
+
+        {activeTab === 'change-requests' && (
+          <motion.div
+            key="change-requests"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            {/* Room Change Requests */}
+            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white">
+                  Room Change Requests
+                </h3>
+                <button
+                  onClick={() => setShowChangeRequestModal(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors text-sm font-medium"
+                >
+                  <ApperIcon name="Plus" className="h-4 w-4" />
+                  <span>New Request</span>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {roomChangeRequests.length > 0 ? (
+                  roomChangeRequests.map((request) => {
+                    const currentRoom = rooms.find(r => r.id === request.currentRoomId)
+                    const desiredRoom = rooms.find(r => r.id === request.desiredRoomId)
+                    
+                    return (
+                      <motion.div
+                        key={request.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-4 bg-surface-50 dark:bg-surface-700 rounded-xl border border-surface-200 dark:border-surface-600"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className="font-medium text-surface-900 dark:text-white">
+                                {request.requestedBy}
+                              </h4>
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                request.status === 'pending' 
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  : request.status === 'approved'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : request.status === 'denied'
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                              }`}>
+                                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                              </span>
+                            </div>
+                            
+                            <div className="text-sm text-surface-600 dark:text-surface-400 space-y-1">
+                              <div>
+                                <span className="font-medium">From:</span> Room {currentRoom?.number} ({currentRoom?.type})
+                              </div>
+                              <div>
+                                <span className="font-medium">To:</span> Room {desiredRoom?.number} ({desiredRoom?.type})
+                              </div>
+                              <div>
+                                <span className="font-medium">Reason:</span> {request.reason}
+                              </div>
+                              <div>
+                                <span className="font-medium">Requested:</span> {request.requestDate}
+                                {request.preferredDate && (
+                                  <span className="ml-2">
+                                    (Preferred: {request.preferredDate})
+                                  </span>
+                                )}
+                              </div>
+                              {request.processedDate && (
+                                <div>
+                                  <span className="font-medium">Processed:</span> {request.processedDate} by {request.processedBy}
+                                  {request.notes && (
+                                    <div className="mt-1">
+                                      <span className="font-medium">Notes:</span> {request.notes}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleViewChangeRequest(request)}
+                              className="p-2 text-surface-600 hover:bg-surface-200 dark:hover:bg-surface-600 rounded-lg transition-colors"
+                              title="View Details"
+                            >
+                              <ApperIcon name="Eye" className="h-4 w-4" />
+                            </button>
+                            
+                            {request.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleChangeRequestStatusUpdate(request.id, 'approved')}
+                                  className="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                  title="Approve"
+                                >
+                                  <ApperIcon name="Check" className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleChangeRequestStatusUpdate(request.id, 'denied')}
+                                  className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                  title="Deny"
+                                >
+                                  <ApperIcon name="X" className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                            
+                            {request.status === 'approved' && (
+                              <button
+                                onClick={() => handleChangeRequestStatusUpdate(request.id, 'completed')}
+                                className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                title="Mark as Completed"
+                              >
+                                <ApperIcon name="CheckCircle" className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )
+                  })
+                ) : (
+                  <div className="text-center py-12">
+                    <ApperIcon name="ArrowRightLeft" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
+                    <p className="text-surface-600 dark:text-surface-400">
+                      No room change requests yet.
+                    </p>
+                    <button
+                      onClick={() => setShowChangeRequestModal(true)}
+                      className="mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Submit First Request
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -778,15 +1016,16 @@ const tabs = [
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors font-medium"
+className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors font-medium"
                   >
-{activeTab === 'availability' ? 'Book Room' : 'Check In'}
+                    {activeTab === 'availability' ? 'Book Room' : 'Check In'}
                   </button>
                 </div>
               </form>
             </motion.div>
+</motion.div>
           </motion.div>
-)}
+        )}
       </AnimatePresence>
 
       {/* Room Change Request Modal */}
