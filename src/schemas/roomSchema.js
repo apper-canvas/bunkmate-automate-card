@@ -137,37 +137,177 @@ export const roomSchema = {
       }
     }
   },
-  amenities: {
-    type: 'array',
-    items: {
-      type: 'string',
-      enum: [
-        'wifi',
-        'ac',
-        'fan',
-        'heater',
-        'private_bathroom',
-        'shared_bathroom',
-        'balcony',
-        'window',
-        'wardrobe',
-        'desk',
-        'chair',
-        'mirror',
-        'attached_kitchenette',
-        'refrigerator',
-        'tv',
-        'geyser',
-        'power_backup',
-        'study_table',
-        'bed_linen',
-        'pillow',
-        'mattress',
-        'locker',
-        'dustbin',
-        'curtains',
-        'night_lamp'
-      ]
+amenities: {
+    type: 'object',
+    properties: {
+      available: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            amenityId: {
+              type: 'string',
+              required: true,
+              format: 'uuid'
+            },
+            name: {
+              type: 'string',
+              required: true,
+              enum: [
+                'wifi',
+                'ac',
+                'fan',
+                'heater',
+                'private_bathroom',
+                'shared_bathroom',
+                'balcony',
+                'window',
+                'wardrobe',
+                'desk',
+                'chair',
+                'mirror',
+                'attached_kitchenette',
+                'refrigerator',
+                'tv',
+                'geyser',
+                'power_backup',
+                'study_table',
+                'bed_linen',
+                'pillow',
+                'mattress',
+                'locker',
+                'dustbin',
+                'curtains',
+                'night_lamp',
+                'microwave',
+                'washing_machine',
+                'iron',
+                'hair_dryer',
+                'kettle',
+                'coffee_maker',
+                'air_purifier',
+                'humidifier',
+                'dehumidifier',
+                'vacuum_cleaner',
+                'cctv',
+                'intercom',
+                'safe',
+                'mini_fridge'
+              ]
+            },
+            category: {
+              type: 'string',
+              enum: ['essential', 'comfort', 'luxury', 'safety', 'convenience'],
+              required: true
+            },
+            status: {
+              type: 'string',
+              enum: ['working', 'not_working', 'maintenance', 'unavailable'],
+              default: 'working'
+            },
+            condition: {
+              type: 'string',
+              enum: ['excellent', 'good', 'fair', 'poor', 'needs_replacement'],
+              default: 'good'
+            },
+            installationDate: {
+              type: 'string',
+              format: 'date-time'
+            },
+            lastMaintenance: {
+              type: 'string',
+              format: 'date-time'
+            },
+            nextMaintenance: {
+              type: 'string',
+              format: 'date-time'
+            },
+            warrantyExpiry: {
+              type: 'string',
+              format: 'date-time'
+            },
+            specifications: {
+              type: 'object',
+              properties: {
+                brand: { type: 'string' },
+                model: { type: 'string' },
+                capacity: { type: 'string' },
+                powerRating: { type: 'string' },
+                voltage: { type: 'string' },
+                frequency: { type: 'string' },
+                dimensions: { type: 'string' },
+                weight: { type: 'string' },
+                color: { type: 'string' },
+                material: { type: 'string' }
+              }
+            },
+            usage: {
+              type: 'object',
+              properties: {
+                dailyUsageHours: { type: 'number', default: 0 },
+                monthlyUsage: { type: 'number', default: 0 },
+                energyConsumption: { type: 'number', default: 0 },
+                lastUsed: { type: 'string', format: 'date-time' },
+                usageCount: { type: 'number', default: 0 }
+              }
+            },
+            issues: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  issueId: { type: 'string', required: true },
+                  description: { type: 'string', required: true },
+                  severity: {
+                    type: 'string',
+                    enum: ['minor', 'moderate', 'major', 'critical'],
+                    default: 'minor'
+                  },
+                  reportedAt: { type: 'string', format: 'date-time' },
+                  reportedBy: { type: 'string' },
+                  status: {
+                    type: 'string',
+                    enum: ['open', 'in_progress', 'resolved', 'closed'],
+                    default: 'open'
+                  },
+                  resolvedAt: { type: 'string', format: 'date-time' },
+                  resolution: { type: 'string' }
+                }
+              }
+            },
+            cost: {
+              type: 'object',
+              properties: {
+                purchasePrice: { type: 'number', default: 0 },
+                installationCost: { type: 'number', default: 0 },
+                maintenanceCost: { type: 'number', default: 0 },
+                operationalCost: { type: 'number', default: 0 },
+                currency: { type: 'string', default: 'INR' }
+              }
+            },
+            accessibility: {
+              type: 'object',
+              properties: {
+                location: { type: 'string' },
+                isShared: { type: 'boolean', default: false },
+                accessInstructions: { type: 'string' },
+                operatingHours: { type: 'string' },
+                restrictions: { type: 'array', items: { type: 'string' } }
+              }
+            }
+          }
+        }
+      },
+      summary: {
+        type: 'object',
+        properties: {
+          totalCount: { type: 'number', default: 0 },
+          workingCount: { type: 'number', default: 0 },
+          maintenanceCount: { type: 'number', default: 0 },
+          outOfOrderCount: { type: 'number', default: 0 },
+          lastUpdated: { type: 'string', format: 'date-time' }
+        }
+      }
     }
   },
   furnishing: {
@@ -332,7 +472,16 @@ export const defaultRoom = {
     currency: 'INR',
     billingCycle: 'monthly'
   },
-  amenities: [],
+amenities: {
+    available: [],
+    summary: {
+      totalCount: 0,
+      workingCount: 0,
+      maintenanceCount: 0,
+      outOfOrderCount: 0,
+      lastUpdated: new Date().toISOString()
+    }
+  },
   furnishing: {
     furnished: 'semi_furnished',
     furniture: []
