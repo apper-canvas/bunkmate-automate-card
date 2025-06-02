@@ -512,6 +512,253 @@ export const clearDataStore = () => {
   toast.info('Data store cleared');
 };
 
+// Room availability checking functions
+export const checkRoomAvailability = async (criteria = {}) => {
+  try {
+    const {
+      checkInDate,
+      checkOutDate,
+      roomType,
+      guestCount,
+      hostelId,
+      amenities = [],
+      maxPrice,
+      minPrice
+    } = criteria;
+
+    let availableRooms = [...(dataStore.rooms || [])];
+
+    // Filter by hostel if specified
+    if (hostelId) {
+      availableRooms = availableRooms.filter(room => room.hostelId === hostelId);
+    }
+
+    // Filter by availability status
+    availableRooms = availableRooms.filter(room => 
+      room.availability.status === 'available' || room.availability.status === 'partial'
+    );
+
+    // Filter by room type
+    if (roomType && roomType !== 'all') {
+      availableRooms = availableRooms.filter(room => room.type === roomType);
+    }
+
+    // Filter by guest capacity
+    if (guestCount) {
+      availableRooms = availableRooms.filter(room => {
+        const availableCapacity = room.capacity.maxOccupants - room.capacity.currentOccupants;
+        return availableCapacity >= parseInt(guestCount);
+      });
+    }
+
+    // Filter by date availability
+    if (checkInDate) {
+      const checkIn = new Date(checkInDate);
+      availableRooms = availableRooms.filter(room => {
+        if (room.availability.availableFrom) {
+          return new Date(room.availability.availableFrom) <= checkIn;
+        }
+        return true;
+      });
+    }
+
+    if (checkOutDate && checkInDate) {
+      const checkIn = new Date(checkInDate);
+      const checkOut = new Date(checkOutDate);
+      const stayDuration = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+      // Check if room will be available for the entire duration
+      availableRooms = availableRooms.filter(room => {
+        if (room.availability.nextAvailable) {
+          const nextAvailable = new Date(room.availability.nextAvailable);
+          return nextAvailable >= checkOut;
+        }
+        return true;
+      });
+    }
+
+    // Filter by amenities
+    if (amenities.length > 0) {
+      availableRooms = availableRooms.filter(room => {
+        const roomAmenities = room.amenities?.available || [];
+        return amenities.every(amenity => roomAmenities.includes(amenity));
+      });
+    }
+
+    // Filter by price range
+    if (minPrice) {
+      availableRooms = availableRooms.filter(room => room.pricing.baseRent >= minPrice);
+    }
+
+    if (maxPrice) {
+      availableRooms = availableRooms.filter(room => room.pricing.baseRent <= maxPrice);
+    }
+
+    // Add calculated fields
+    const enrichedRooms = availableRooms.map(room => {
+      const availableBeds = room.capacity.maxOccupants - room.capacity.currentOccupants;
+      let totalCost = room.pricing.baseRent;
+
+      if (checkInDate && checkOutDate) {
+        const checkIn = new Date(checkInDate);
+        const checkOut = new Date(checkOutDate);
+        const stayDuration = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+        const dailyRate = room.pricing.baseRent / 30; // Assuming monthly rent
+        totalCost = dailyRate * stayDuration;
+      }
+
+      return {
+        ...room,
+        availableBeds,
+        totalCost,
+        isFullyAvailable: availableBeds >= (guestCount || 1)
+      };
+    });
+
+    // Sort by price (ascending)
+    enrichedRooms.sort((a, b) => a.pricing.baseRent - b.pricing.baseRent);
+
+    toast.success(`Found ${enrichedRooms.length} available rooms matching your criteria`);
+
+    return {
+      success: true,
+      data: enrichedRooms,
+      totalFound: enrichedRooms.length,
+      criteria: criteria
+    };
+
+  } catch (error) {
+    toast.error(`Error checking room availability: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Bulk availability check for multiple date ranges
+export const bulkAvailabilityCheck = async (dateRanges = [], roomTypes = []) => {
+  try {
+    const results = [];
+
+    for (const dateRange of dateRanges) {
+      for (const roomType of roomTypes) {
+        const result = await checkRoomAvailability({
+          checkInDate: dateRange.checkIn,
+          checkOutDate: dateRange.checkOut,
+          roomType: roomType
+        });
+
+        results.push({
+          dateRange,
+          roomType,
+          availableRooms: result.success ? result.data : [],
+          totalAvailable: result.success ? result.data.length : 0
+        });
+      }
+    }
+
+    return { success: true, data: results };
+  } catch (error) {
+    toast.error(`Error in bulk availability check: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Get available rooms for a specific date
+export const getAvailableRoomsByDate = async (date, hostelId = null) => {
+  try {
+    const criteria = {
+      checkInDate: date,
+      checkOutDate: date
+    };
+
+    if (hostelId) {
+      criteria.hostelId = hostelId;
+    }
+
+    const result = await checkRoomAvailability(criteria);
+    
+    if (result.success) {
+      // Group by room type
+      const groupedRooms = result.data.reduce((acc, room) => {
+        if (!acc[room.type]) {
+          acc[room.type] = [];
+        }
+        acc[room.type].push(room);
+        return acc;
+      }, {});
+
+      return {
+        success: true,
+        data: groupedRooms,
+        totalRooms: result.data.length,
+        date: date
+      };
+    }
+
+    return result;
+  } catch (error) {
+    toast.error(`Error getting rooms by date: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+// Search rooms by amenities
+export const searchRoomsByAmenities = async (requiredAmenities = [], optionalAmenities = []) => {
+  try {
+    let rooms = [...(dataStore.rooms || [])];
+
+    // Filter by required amenities (must have all)
+    if (requiredAmenities.length > 0) {
+      rooms = rooms.filter(room => {
+        const roomAmenities = room.amenities?.available || [];
+        return requiredAmenities.every(amenity => roomAmenities.includes(amenity));
+      });
+    }
+
+    // Score by optional amenities (nice to have)
+    const scoredRooms = rooms.map(room => {
+      const roomAmenities = room.amenities?.available || [];
+      const optionalMatches = optionalAmenities.filter(amenity => 
+        roomAmenities.includes(amenity)
+      ).length;
+      
+      const amenityScore = optionalAmenities.length > 0 
+        ? (optionalMatches / optionalAmenities.length) * 100 
+        : 0;
+
+      return {
+        ...room,
+        amenityScore,
+        matchedOptionalAmenities: optionalAmenities.filter(amenity => 
+          roomAmenities.includes(amenity)
+        )
+      };
+    });
+
+    // Sort by amenity score (descending) and then by price (ascending)
+    scoredRooms.sort((a, b) => {
+      if (b.amenityScore !== a.amenityScore) {
+        return b.amenityScore - a.amenityScore;
+      }
+      return a.pricing.baseRent - b.pricing.baseRent;
+    });
+
+    toast.success(`Found ${scoredRooms.length} rooms matching amenity criteria`);
+
+    return {
+      success: true,
+      data: scoredRooms,
+      searchCriteria: {
+        required: requiredAmenities,
+        optional: optionalAmenities
+      }
+    };
+
+  } catch (error) {
+    toast.error(`Error searching by amenities: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   initializeDataStore,
   createEntity,
@@ -526,5 +773,9 @@ export default {
   bulkUpdateEntities,
   exportData,
   getDataStore,
-  clearDataStore
+  clearDataStore,
+  checkRoomAvailability,
+  bulkAvailabilityCheck,
+  getAvailableRoomsByDate,
+  searchRoomsByAmenities
 };

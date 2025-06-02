@@ -324,6 +324,250 @@ const MainFeature = () => {
                 )}
               </div>
             </div>
+</motion.div>
+        )}
+
+        {activeTab === 'availability' && (
+          <motion.div
+            key="availability"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            {/* Search Filters */}
+            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
+              <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white mb-6">
+                Search Available Rooms
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Check-in Date *
+                  </label>
+                  <input
+                    type="date"
+                    value={availabilityFilters.checkInDate}
+                    onChange={(e) => handleFilterChange('checkInDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Check-out Date
+                  </label>
+                  <input
+                    type="date"
+                    value={availabilityFilters.checkOutDate}
+                    onChange={(e) => handleFilterChange('checkOutDate', e.target.value)}
+                    min={availabilityFilters.checkInDate || new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Room Type
+                  </label>
+                  <select
+                    value={availabilityFilters.roomType}
+                    onChange={(e) => handleFilterChange('roomType', e.target.value)}
+                    className="w-full px-3 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                  >
+                    <option value="all">All Types</option>
+                    {roomTypes.map(type => (
+                      <option key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">
+                    Number of Guests
+                  </label>
+                  <select
+                    value={availabilityFilters.guestCount}
+                    onChange={(e) => handleFilterChange('guestCount', parseInt(e.target.value))}
+                    className="w-full px-3 py-2 bg-surface-50 dark:bg-surface-700 border border-surface-200 dark:border-surface-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-sm"
+                  >
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(count => (
+                      <option key={count} value={count}>
+                        {count} Guest{count > 1 ? 's' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Amenities Filter */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-3">
+                  Required Amenities
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {commonAmenities.map(amenity => (
+                    <button
+                      key={amenity}
+                      onClick={() => handleAmenityToggle(amenity)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                        availabilityFilters.amenities.includes(amenity)
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-surface-100 dark:bg-surface-600 text-surface-700 dark:text-surface-300 hover:bg-primary-100 dark:hover:bg-primary-900'
+                      }`}
+                    >
+                      {amenity.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleAvailabilitySearch}
+                  disabled={isSearching || !availabilityFilters.checkInDate}
+                  className="flex items-center justify-center space-x-2 px-6 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-medium"
+                >
+                  {isSearching ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Searching...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ApperIcon name="Search" className="h-4 w-4" />
+                      <span>Search Rooms</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={clearAvailabilityFilters}
+                  className="flex items-center justify-center space-x-2 px-6 py-2 border border-surface-200 dark:border-surface-600 text-surface-700 dark:text-surface-300 rounded-xl hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                >
+                  <ApperIcon name="RotateCcw" className="h-4 w-4" />
+                  <span>Clear Filters</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Search Results */}
+            <div className="bg-white dark:bg-surface-800 rounded-2xl p-4 sm:p-6 shadow-soft border border-surface-200 dark:border-surface-700">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg sm:text-xl font-semibold text-surface-900 dark:text-white">
+                  Available Rooms
+                  {availableRooms.length > 0 && (
+                    <span className="ml-2 text-sm font-normal text-surface-600 dark:text-surface-400">
+                      ({availableRooms.length} found)
+                    </span>
+                  )}
+                </h3>
+              </div>
+
+              {availableRooms.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availableRooms.map((room) => (
+                    <motion.div
+                      key={room.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 bg-surface-50 dark:bg-surface-700 rounded-xl border border-surface-200 dark:border-surface-600 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-surface-900 dark:text-white">
+                            Room {room.roomNumber}
+                          </h4>
+                          <p className="text-sm text-surface-600 dark:text-surface-400 capitalize">
+                            {room.type} Room
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          room.availability.status === 'available' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        }`}>
+                          {room.availability.status}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-surface-600 dark:text-surface-400">Capacity:</span>
+                          <span className="font-medium text-surface-900 dark:text-white">
+                            {room.capacity.maxOccupants} guests
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-surface-600 dark:text-surface-400">Available Beds:</span>
+                          <span className="font-medium text-surface-900 dark:text-white">
+                            {room.availableBeds}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-surface-600 dark:text-surface-400">Monthly Rent:</span>
+                          <span className="font-medium text-primary-600 dark:text-primary-400">
+                            ${room.pricing.baseRent}
+                          </span>
+                        </div>
+                        {availabilityFilters.checkOutDate && (
+                          <div className="flex justify-between">
+                            <span className="text-surface-600 dark:text-surface-400">Total Cost:</span>
+                            <span className="font-medium text-primary-600 dark:text-primary-400">
+                              ${room.totalCost?.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {room.amenities?.available?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-surface-200 dark:border-surface-600">
+                          <p className="text-xs text-surface-600 dark:text-surface-400 mb-2">Amenities:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {room.amenities.available.slice(0, 3).map(amenity => (
+                              <span
+                                key={amenity}
+                                className="px-2 py-1 bg-surface-200 dark:bg-surface-600 text-xs rounded-md text-surface-700 dark:text-surface-300"
+                              >
+                                {amenity.replace('_', ' ')}
+                              </span>
+                            ))}
+                            {room.amenities.available.length > 3 && (
+                              <span className="px-2 py-1 bg-surface-200 dark:bg-surface-600 text-xs rounded-md text-surface-700 dark:text-surface-300">
+                                +{room.amenities.available.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          setSelectedRoom(room)
+                          setShowModal(true)
+                        }}
+                        disabled={!room.isFullyAvailable}
+                        className="w-full mt-4 px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
+                      >
+                        {room.isFullyAvailable ? 'Book Now' : 'Insufficient Capacity'}
+                      </button>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <ApperIcon name="Calendar" className="h-12 w-12 text-surface-400 mx-auto mb-4" />
+                  <p className="text-surface-600 dark:text-surface-400">
+                    {isSearching ? 'Searching for available rooms...' : 'Search for available rooms using the filters above.'}
+                  </p>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
