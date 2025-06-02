@@ -209,12 +209,17 @@ const [availableRooms, setAvailableRooms] = useState([])
     setRooms(updatedRooms)
     toast.success(`${resident.name} has been checked out`)
   }
-const tabs = [
+// Tabs configuration
+  const tabs = [
     { id: 'rooms', label: 'Room Management', icon: 'Building' },
     { id: 'residents', label: 'Residents', icon: 'Users' },
     { id: 'availability', label: 'Room Search', icon: 'Calendar' },
-    { id: 'change-requests', label: 'Room Change Requests', icon: 'ArrowRightLeft' }
+    { id: 'change-requests', label: 'Room Change Requests', icon: 'ArrowRightLeft' },
+    { id: 'due-fees', label: 'Due Fees', icon: 'DollarSign' },
+    { id: 'rule-updates', label: 'Rule Updates', icon: 'FileText' },
+    { id: 'emergency-alerts', label: 'Emergency Alerts', icon: 'AlertTriangle' }
   ]
+
   // Availability search handlers
   const handleFilterChange = (key, value) => {
     setAvailabilityFilters(prev => ({
@@ -653,10 +658,11 @@ maxPrice: ''
               </div>
 
               {/* Action Buttons */}
+{/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleAvailabilitySearch}
-disabled={isSearching || !availabilityFilters.checkInDate}
+                  disabled={isSearching || !availabilityFilters.checkInDate}
                   className="flex items-center justify-center space-x-2 px-6 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-surface-300 disabled:cursor-not-allowed text-white rounded-xl transition-colors font-medium"
                 >
                   {isSearching ? (
@@ -664,8 +670,6 @@ disabled={isSearching || !availabilityFilters.checkInDate}
                       <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
                       <span>Searching...</span>
                     </>
-return (
-    <div className="space-y-6">
                   ) : (
                     <>
                       <ApperIcon name="Search" className="h-4 w-4" />
